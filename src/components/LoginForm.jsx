@@ -55,8 +55,7 @@ const FormContainer = styled.div`
   backdrop-filter: blur(10px);
   border-radius: 25px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  width: 120%;
-  max-width: ${props => props.isSignup ? '500px' : '460px'};
+  width: 390px;
   opacity: 0;
   animation: ${fadeIn} 0.8s ease-out forwards;
   animation-delay: 0.2s;
