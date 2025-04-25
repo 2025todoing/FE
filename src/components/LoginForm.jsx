@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import PropTypes from 'prop-types';
 
 // ================================
 // 🔸 Animations
@@ -350,7 +351,7 @@ const ToggleFormText = styled.p`
 // 🔸 Main Component
 // ================================
 
-const LoginForm = () => {
+const LoginForm = ({ onLoginSuccess }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [fieldShine, setFieldShine] = useState({});
   
@@ -378,8 +379,12 @@ const LoginForm = () => {
       }
       
       console.log('Signup attempted with:', { email, password, nickname });
+      // For now, successful signup automatically logs the user in as well
+      if (onLoginSuccess) onLoginSuccess();
     } else {
       console.log('Login attempted with:', { username, password });
+      // For the placeholder behavior, any input logs the user in
+      if (onLoginSuccess) onLoginSuccess();
     }
   };
 
@@ -632,6 +637,10 @@ const LoginForm = () => {
       )}
     </FormContainer>
   );
+};
+
+LoginForm.propTypes = {
+  onLoginSuccess: PropTypes.func
 };
 
 export default LoginForm;

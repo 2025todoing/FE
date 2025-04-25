@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import LoginForm from './LoginForm';
+import PropTypes from 'prop-types';
 
 // Animations
 const fadeIn = keyframes`
@@ -336,7 +337,7 @@ const ModalOverlay = styled.div`
   `}
 `;
 
-const LandingPage = () => {
+const LandingPage = (props) => {
   // Colors for each letter of "Todooungi"
   const logoColors = [
     "#FF5252", // Red - T
@@ -417,11 +418,15 @@ const LandingPage = () => {
         <ModalOverlay show={showLogin} onClick={handleBackToHome} />
         
         <LoginWrapper show={showLogin}>
-          <LoginForm />
+          <LoginForm onLoginSuccess={props.onLoginSuccess} />
         </LoginWrapper>
       </Container>
     </>
   );
+};
+
+LandingPage.propTypes = {
+  onLoginSuccess: PropTypes.func
 };
 
 export default LandingPage;
