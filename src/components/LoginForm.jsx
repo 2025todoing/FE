@@ -471,7 +471,7 @@ const LoginForm = ({ onLoginSuccess }) => {
                 </CheckButton>
               </InputRow>
               {!emailAvailable && (
-                <ErrorMessage>This email is already registered</ErrorMessage>
+                <ErrorMessage>이미 존재하는 이메일 입니다.</ErrorMessage>
               )}
             </FormGroup>
             
@@ -512,7 +512,7 @@ const LoginForm = ({ onLoginSuccess }) => {
                 onBlur={validatePasswordMatch}
               />
               {!passwordMatch && (
-                <ErrorMessage>Passwords don't match</ErrorMessage>
+                <ErrorMessage>비밀번호가 일치하지 않습니다.</ErrorMessage>
               )}
             </FormGroup>
             
@@ -542,7 +542,7 @@ const LoginForm = ({ onLoginSuccess }) => {
                 </CheckButton>
               </InputRow>
               {!nicknameAvailable && (
-                <ErrorMessage>This nickname is already taken</ErrorMessage>
+                <ErrorMessage>이미 존재하는 닉네임입니다.</ErrorMessage>
               )}
             </FormGroup>
             
@@ -573,7 +573,7 @@ const LoginForm = ({ onLoginSuccess }) => {
           </SocialButtonsContainer>
           
           <ToggleFormText>
-            Already have an account? <span onClick={toggleForm}>Log In</span>
+            계정이 있으신가요? <span onClick={toggleForm}>LogIn</span>
           </ToggleFormText>
         </>
       ) : (

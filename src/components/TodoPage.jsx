@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 
 // Animations
@@ -472,6 +472,24 @@ const TodoText = styled.div`
   font-size: 1.1rem;
   color: #333;
   margin-bottom: ${props => props.aiVerification ? '0.5rem' : '0'};
+  width: 100%;
+`;
+
+const TodoEditInput = styled.input`
+  width: 100%;
+  font-size: 1.1rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #4F87FF;
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+  box-shadow: 0 2px 10px rgba(79, 135, 255, 0.2);
+  transition: all 0.2s ease;
+  
+  &:focus {
+    box-shadow: 0 3px 15px rgba(79, 135, 255, 0.3);
+    border-color: #B344E2;
+  }
 `;
 
 const CheckboxContainer = styled.div`
@@ -643,7 +661,7 @@ const AddTodoForm = styled.div`
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.8);
   
-  ${props => props.show && `
+  ${props => props.show && css`
     opacity: 1;
     visibility: visible;
     animation: ${scaleUp} 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -697,7 +715,6 @@ const CategoryButton = styled.button`
   padding: 0.6rem 1rem;
   border-radius: 50px;
   font-size: 0.9rem;
-  font-weight: bold;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -739,7 +756,6 @@ const FormButton = styled.button`
   padding: 0.8rem 1.5rem;
   border-radius: 50px;
   font-size: 1rem;
-  font-weight: bold;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -803,6 +819,8 @@ const TodoPage = () => {
   const [showContextMenu, setShowContextMenu] = useState({ visible: false, x: 0, y: 0, todoId: null });
   const [newTodo, setNewTodo] = useState({ category: 'Exercise', text: '', aiVerification: false });
   const [categories] = useState(['Exercise', 'Study', 'Work', 'Hobby', 'Other']);
+  const [editingTodoId, setEditingTodoId] = useState(null);
+  const [editValue, setEditValue] = useState('');
   
   const [todos, setTodos] = useState([
     { id: 1, category: 'Exercise', text: 'Go for a 5km run', completed: false, aiVerification: true, verificationMethod: 'GPS 위치 인증' },
@@ -878,39 +896,37 @@ const TodoPage = () => {
     setShowContextMenu({ ...showContextMenu, visible: false });
   };
   
-  // Edit todo
+  // Edit todo inline
   const handleEditTodo = (id) => {
     const todo = todos.find(todo => todo.id === id);
-    setNewTodo({ 
-      category: todo.category, 
-      text: todo.text, 
-      aiVerification: todo.aiVerification,
-      id // Store the id for updating
-    });
-    setShowAddTodoPopup(true);
+    setEditingTodoId(id);
+    setEditValue(todo.text);
     setShowContextMenu({ ...showContextMenu, visible: false });
   };
   
-  // Add or update todo
+  // Save edit
+  const handleSaveEdit = (e, id) => {
+    if (e.key === 'Enter' || e.type === 'blur') {
+      if (editValue.trim()) {
+        setTodos(todos.map(todo => 
+          todo.id === id ? { ...todo, text: editValue } : todo
+        ));
+      }
+      setEditingTodoId(null);
+    }
+  };
+  
+  // Add new todo
   const handleAddTodo = () => {
     if (newTodo.text.trim()) {
-      if (newTodo.id) {
-        // Update existing todo
-        setTodos(todos.map(todo => 
-          todo.id === newTodo.id 
-            ? { ...todo, category: newTodo.category, text: newTodo.text, aiVerification: newTodo.aiVerification } 
-            : todo
-        ));
-      } else {
-        // Add new todo
-        const newId = Math.max(...todos.map(todo => todo.id), 0) + 1;
-        setTodos([...todos, { 
-          ...newTodo, 
-          id: newId, 
-          completed: false,
-          verificationMethod: newTodo.aiVerification ? '위치 인증' : undefined
-        }]);
-      }
+      // Add new todo
+      const newId = Math.max(...todos.map(todo => todo.id), 0) + 1;
+      setTodos([...todos, { 
+        ...newTodo, 
+        id: newId, 
+        completed: false,
+        verificationMethod: newTodo.aiVerification ? '위치 인증' : undefined
+      }]);
       
       // Reset form and close popup
       setNewTodo({ category: 'Exercise', text: '', aiVerification: false });
@@ -1003,7 +1019,7 @@ const TodoPage = () => {
           
           <TodoContainer>
             <TodoHeader>
-              <TodoTitle>Your Todos</TodoTitle>
+              <TodoTitle>My Todos</TodoTitle>
               <CreateTodoButton onClick={() => setShowAddTodoPopup(true)}>
                 Create a Todo with Tudung
                 <AddIcon>+</AddIcon>
@@ -1025,7 +1041,18 @@ const TodoPage = () => {
                       >
                         <Category type={todo.category}>{todo.category}</Category>
                         <TodoContent>
-                          <TodoText aiVerification={todo.aiVerification}>{todo.text}</TodoText>
+                          {editingTodoId === todo.id ? (
+                            <TodoEditInput
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleSaveEdit(e, todo.id)}
+                              onBlur={(e) => handleSaveEdit(e, todo.id)}
+                              autoFocus
+                            />
+                          ) : (
+                            <TodoText aiVerification={todo.aiVerification}>{todo.text}</TodoText>
+                          )}
                           {todo.aiVerification && (
                             <AiVerificationTag>
                               AI 인증 방법: {todo.verificationMethod} <span>(인증하러 가기)</span>
@@ -1081,7 +1108,7 @@ const TodoPage = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <AddTodoTitle>
-            {newTodo.id ? 'Edit Todo' : 'Create New Todo'}
+            Create New Todo
           </AddTodoTitle>
           
           <FormGroup>
@@ -1129,7 +1156,7 @@ const TodoPage = () => {
               onClick={handleAddTodo}
               disabled={!newTodo.text.trim()}
             >
-              {newTodo.id ? 'Update' : 'Add Todo'}
+              Add Todo
             </SubmitButton>
           </ButtonGroup>
         </AddTodoForm>
