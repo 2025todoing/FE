@@ -32,16 +32,17 @@ const starRotate = keyframes`
 `;
 
 const starOpacity = keyframes`
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0.2; transform: scale(1); }
 `;
 
 const starCircle = keyframes`
-  0% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-15px) translateX(10px); }
-  50% { transform: translateY(0) translateX(20px); }
-  75% { transform: translateY(15px) translateX(10px); }
-  100% { transform: translateY(0) translateX(0); }
+  0% { transform: translateY(0) translateX(0) scale(1); }
+  25% { transform: translateY(-25px) translateX(15px) scale(1.2); }
+  50% { transform: translateY(0) translateX(30px) scale(1.4); }
+  75% { transform: translateY(25px) translateX(15px) scale(1.2); }
+  100% { transform: translateY(0) translateX(0) scale(1); }
 `;
 
 const floatingAnimation1 = keyframes`

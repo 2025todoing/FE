@@ -811,7 +811,7 @@ const AiVerificationCheckbox = styled.input`
 `;
 
 // Component
-const TodoPage = () => {
+const TodoPage = ({ onNavigate }) => {
   // States
   const [selectedDate, setSelectedDate] = useState(3); // Index of "Today"
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -983,7 +983,7 @@ const TodoPage = () => {
             <NavMenu>
               <NavButton active>Todos</NavButton>
               <NavButton>Alram</NavButton>
-              <NavButton>MyPage</NavButton>
+              <NavButton onClick={() => onNavigate && onNavigate('mypage')}>MyPage</NavButton>
             </NavMenu>
           </Header>
         
