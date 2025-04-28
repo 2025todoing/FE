@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import AlertPopup from './AlertPopup';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 
@@ -125,6 +126,22 @@ const NavButton = styled.button`
       left: 50%;
       transform: translateX(-50%);
       border-radius: 3px;
+    }
+  `}
+  
+  ${props => props.hasNotification && `
+    color: #FF5252;
+    position: relative;
+    
+    &:before {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #FF5252;
+      border-radius: 50%;
+      top: 4px;
+      right: 8px;
     }
   `}
 `;
@@ -811,12 +828,24 @@ const AiVerificationCheckbox = styled.input`
 `;
 
 // Component
-const TodoPage = ({ onNavigate }) => {
+const TodoPage = ({ onNavigate, onCreateTodo }) => {
   // States
   const [selectedDate, setSelectedDate] = useState(3);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [showAddTodoPopup, setShowAddTodoPopup] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState({ visible: false, x: 0, y: 0, todoId: null });
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [isHoveringNotifications, setIsHoveringNotifications] = useState(false);
+  const notificationButtonRef = useRef(null);
+  
+  // Notifications state
+  const [notifications, setNotifications] = useState([
+    { date: 'Apr 28', content: 'You completed your "Evening yoga" task.', unread: true },
+    { date: 'Apr 27', content: 'You became friends with Lisa.', unread: true },
+    { date: 'Apr 25', content: 'You completed 3 tasks today!', unread: false },
+    { date: 'Apr 23', content: 'Tom shared a todo with you.', unread: false },
+    { date: 'Apr 21', content: 'You completed your "Send project proposal" task.', unread: false }
+  ]);
   const [newTodo, setNewTodo] = useState({ 
     category: 'Exercise', 
     text: '', 
@@ -1026,9 +1055,14 @@ const TodoPage = ({ onNavigate }) => {
   };
   
   // Handle document click to hide context menu
-  const handleDocumentClick = () => {
+  const handleDocumentClick = (event) => {
     if (showContextMenu.visible) {
       setShowContextMenu({ ...showContextMenu, visible: false });
+    }
+    
+    // Don't close notifications popup if clicking on the button
+    if (notificationButtonRef.current && notificationButtonRef.current.contains(event.target)) {
+      return;
     }
   };
   
@@ -1113,6 +1147,38 @@ const TodoPage = ({ onNavigate }) => {
     }
   };
   
+  // Check if there are unread notifications
+  const hasUnreadNotifications = notifications.some(notification => notification.unread);
+  
+  // Handle notifications button hover
+  const handleNotificationsHover = () => {
+    setIsHoveringNotifications(true);
+    setShowNotifications(true);
+  };
+  
+  // Handle notifications button leave
+  const handleNotificationsLeave = () => {
+    setIsHoveringNotifications(false);
+  };
+  
+  // Handle notifications button click
+  const handleNotificationsClick = () => {
+    setShowNotifications(!showNotifications);
+  };
+  
+  // Handle close notifications
+  const handleCloseNotifications = () => {
+    setShowNotifications(false);
+  };
+  
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = () => {
+    setNotifications(notifications.map(notification => ({
+      ...notification,
+      unread: false
+    })));
+  };
+  
   // Add event listener for document click
   useEffect(() => {
     document.addEventListener('click', handleDocumentClick);
@@ -1136,7 +1202,24 @@ const TodoPage = ({ onNavigate }) => {
             <Logo>Todooungi</Logo>
             <NavMenu>
               <NavButton active>Todos</NavButton>
-              <NavButton>Alram</NavButton>
+              <NavButton 
+                ref={notificationButtonRef}
+                hasNotification={hasUnreadNotifications}
+                onClick={handleNotificationsClick}
+                onMouseEnter={handleNotificationsHover}
+                onMouseLeave={handleNotificationsLeave}
+              >
+                Alram
+                {showNotifications && (
+                  <AlertPopup
+                    show={showNotifications}
+                    onClose={handleCloseNotifications}
+                    isHovering={isHoveringNotifications}
+                    notifications={notifications}
+                    markAsRead={markAllNotificationsAsRead}
+                  />
+                )}
+              </NavButton>
               <NavButton onClick={() => onNavigate && onNavigate('mypage')}>MyPage</NavButton>
             </NavMenu>
           </Header>
@@ -1180,7 +1263,7 @@ const TodoPage = ({ onNavigate }) => {
                 }
               </TodoTitle>
               {!selectedFriend && (
-                <CreateTodoButton onClick={() => setShowAddTodoPopup(true)}>
+                <CreateTodoButton onClick={onCreateTodo}>
                   Create a Todo with Tudung
                   <AddIcon>+</AddIcon>
                 </CreateTodoButton>
