@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 
@@ -223,7 +223,10 @@ const ProfileImage = styled.div`
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background-color: #B344E2;
+  background-color: ${props => props.hasImage ? 'transparent' : '#B344E2'};
+  background-image: ${props => props.imageUrl ? `url(${props.imageUrl})` : 'none'};
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -232,6 +235,35 @@ const ProfileImage = styled.div`
   cursor: pointer;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   border: 4px solid white;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    &:after {
+      opacity: 1;
+    }
+  }
+
+  &:after {
+    content: '사진 변경';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 const ProfileInfo = styled.div`
@@ -569,12 +601,14 @@ const FriendActionButton = styled.button`
 
 // Component
 const MyPage = ({ onNavigate }) => {
+  const fileInputRef = useRef(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userData, setUserData] = useState({
     name: 'Sarah Kim',
     email: 'sarah.kim@example.com',
-    userId: 'sarah_k123',
-    joinDate: 'April 12, 2024'
+
+    joinDate: 'April 12, 2024',
+    profileImage: null
   });
   
   // Sample friends data
@@ -613,6 +647,24 @@ const MyPage = ({ onNavigate }) => {
     // Block friend logic would go here
     alert(`Blocking friend with ID: ${id}`);
   };
+
+  const handleImageClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserData({
+          ...userData,
+          profileImage: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   return (
     <>
@@ -633,9 +685,19 @@ const MyPage = ({ onNavigate }) => {
             
             <ProfileSection>
               <ProfileImageContainer>
-                <ProfileImage>
-                  {userData.name[0]}
+                <ProfileImage 
+                  hasImage={!!userData.profileImage}
+                  imageUrl={userData.profileImage}
+                  onClick={handleImageClick}
+                >
+                  {!userData.profileImage && userData.name[0]}
                 </ProfileImage>
+                <HiddenFileInput
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
               </ProfileImageContainer>
               
               <ProfileInfo>
@@ -643,9 +705,7 @@ const MyPage = ({ onNavigate }) => {
                 <UserInfoItem icon="'📧'">
                   {userData.email}
                 </UserInfoItem>
-                <UserInfoItem icon="'👤'">
-                  ID: {userData.userId}
-                </UserInfoItem>
+    
                 <UserInfoItem icon="'🗓️'">
                   Joined: {userData.joinDate}
                 </UserInfoItem>

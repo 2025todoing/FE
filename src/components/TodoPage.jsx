@@ -813,28 +813,174 @@ const AiVerificationCheckbox = styled.input`
 // Component
 const TodoPage = ({ onNavigate }) => {
   // States
-  const [selectedDate, setSelectedDate] = useState(3); // Index of "Today"
+  const [selectedDate, setSelectedDate] = useState(3);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [showAddTodoPopup, setShowAddTodoPopup] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState({ visible: false, x: 0, y: 0, todoId: null });
-  const [newTodo, setNewTodo] = useState({ category: 'Exercise', text: '', aiVerification: false });
+  const [newTodo, setNewTodo] = useState({ 
+    category: 'Exercise', 
+    text: '', 
+    aiVerification: false,
+    date: new Date().toISOString().split('T')[0]
+  });
   const [categories] = useState(['Exercise', 'Study', 'Work', 'Hobby', 'Other']);
   const [editingTodoId, setEditingTodoId] = useState(null);
   const [editValue, setEditValue] = useState('');
   
-  const [todos, setTodos] = useState([
-    { id: 1, category: 'Exercise', text: 'Go for a 5km run', completed: false, aiVerification: true, verificationMethod: 'GPS 위치 인증' },
-    { id: 2, category: 'Study', text: 'Complete React assignment', completed: false, aiVerification: false },
-    { id: 3, category: 'Study', text: 'Review lecture notes', completed: false, aiVerification: false },
-    { id: 4, category: 'Hobby', text: 'Practice guitar for 30 minutes', completed: true, aiVerification: false },
-    { id: 5, category: 'Hobby', text: 'Draw sketches', completed: false, aiVerification: false },
-    { id: 6, category: 'Work', text: 'Client meeting at 2pm', completed: false, aiVerification: true, verificationMethod: '사진 인증' },
-    { id: 7, category: 'Work', text: 'Send project proposal', completed: true, aiVerification: false },
-    { id: 8, category: 'Exercise', text: 'Evening yoga', completed: false, aiVerification: false }
+  // Sample friends data with their todos
+  const [friends] = useState([
+    { 
+      id: 1, 
+      name: 'Tom', 
+      color: '#FF5252',
+      todos: [
+        { 
+          id: 101, 
+          category: 'Exercise', 
+          text: '30분 조깅하기', 
+          completed: true, 
+          date: '2024-04-25',
+          aiVerification: false 
+        },
+        { 
+          id: 102, 
+          category: 'Study', 
+          text: '알고리즘 문제 풀기', 
+          completed: false, 
+          date: '2024-04-25',
+          aiVerification: true,
+          verificationMethod: '스크린샷 인증'
+        }
+      ]
+    },
+    { 
+      id: 2, 
+      name: 'Lisa', 
+      color: '#4F87FF',
+      todos: [
+        { 
+          id: 201, 
+          category: 'Work', 
+          text: '프로젝트 발표 준비', 
+          completed: false, 
+          date: '2024-04-25',
+          aiVerification: false 
+        }
+      ]
+    },
+    { 
+      id: 3, 
+      name: 'Jack', 
+      color: '#FFD600',
+      todos: [
+        { 
+          id: 301, 
+          category: 'Hobby', 
+          text: '기타 연습하기', 
+          completed: true, 
+          date: '2024-04-25',
+          aiVerification: false 
+        }
+      ]
+    },
+    { id: 4, name: 'Emma', color: '#4AD66D', todos: [] },
+    { id: 5, name: 'Mike', color: '#B344E2', todos: [] }
   ]);
+
+  const [myTodos, setMyTodos] = useState([
+    { 
+      id: 1, 
+      category: 'Exercise', 
+      text: 'Go for a 5km run', 
+      completed: false, 
+      aiVerification: true, 
+      verificationMethod: 'GPS 위치 인증',
+      date: '2024-04-25'
+    },
+    { 
+      id: 2, 
+      category: 'Study', 
+      text: 'Complete React assignment', 
+      completed: false, 
+      aiVerification: false,
+      date: '2024-04-25'
+    },
+    { 
+      id: 3, 
+      category: 'Study', 
+      text: 'Review lecture notes', 
+      completed: false, 
+      aiVerification: false,
+      date: '2024-04-24'
+    },
+    { 
+      id: 4, 
+      category: 'Hobby', 
+      text: 'Practice guitar for 30 minutes', 
+      completed: true, 
+      aiVerification: false,
+      date: '2024-04-26'
+    },
+    { 
+      id: 5, 
+      category: 'Hobby', 
+      text: 'Draw sketches', 
+      completed: false, 
+      aiVerification: false,
+      date: '2024-04-25'
+    },
+    { 
+      id: 6, 
+      category: 'Work', 
+      text: 'Client meeting at 2pm', 
+      completed: false, 
+      aiVerification: true, 
+      verificationMethod: '사진 인증',
+      date: '2024-04-26'
+    },
+    { 
+      id: 7, 
+      category: 'Work', 
+      text: 'Send project proposal', 
+      completed: true, 
+      aiVerification: false,
+      date: '2024-04-23'
+    },
+    { 
+      id: 8, 
+      category: 'Exercise', 
+      text: 'Evening yoga', 
+      completed: false, 
+      aiVerification: false,
+      date: '2024-04-25'
+    }
+  ]);
+
+  // 현재 보여줄 todos 결정
+  const currentTodos = selectedFriend 
+    ? friends.find(f => f.id === selectedFriend)?.todos || []
+    : myTodos;
+  
+  // 날짜 관련 유틸리티 함수들
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
+  const getDateFromIndex = (index) => {
+    const today = new Date();
+    const date = new Date(today);
+    date.setDate(today.getDate() - (3 - index));
+    return formatDate(date);
+  };
+
+  // 현재 선택된 날짜의 투두 리스트만 필터링
+  const filteredTodos = currentTodos.filter(todo => 
+    todo.date === getDateFromIndex(selectedDate)
+  );
   
   // Group todos by category
-  const groupedTodos = todos.reduce((acc, todo) => {
+  const groupedTodos = filteredTodos.reduce((acc, todo) => {
     if (!acc[todo.category]) {
       acc[todo.category] = [];
     }
@@ -843,31 +989,27 @@ const TodoPage = ({ onNavigate }) => {
   }, {});
   
   // Sample dates for the date selector
-  const dates = [
-    { day: 'Mon', date: '22' },
-    { day: 'Tue', date: '23' },
-    { day: 'Wed', date: '24' },
-    { day: 'Today', date: '25' },
-    { day: 'Fri', date: '26' },
-    { day: 'Sat', date: '27' },
-    { day: 'Sun', date: '28' }
-  ];
+  const dates = (() => {
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (3 - i)); // 3은 "Today"의 인덱스
+      return {
+        day: i === 3 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: date.getDate().toString(),
+        fullDate: formatDate(date)
+      };
+    });
+  })();
   
-  // Sample friends
-  const friends = [
-    { id: 1, name: 'Tom', color: '#FF5252' },
-    { id: 2, name: 'Lisa', color: '#4F87FF' },
-    { id: 3, name: 'Jack', color: '#FFD600' },
-    { id: 4, name: 'Emma', color: '#4AD66D' },
-    { id: 5, name: 'Mike', color: '#B344E2' }
-  ];
-  
-  // Handle todo completion
+  // Handle todo completion (내 투두만 체크 가능)
   const handleTodoComplete = (id) => {
-    const todo = todos.find(todo => todo.id === id);
+    if (selectedFriend) return; // 친구의 투두는 체크 불가능
+    
+    const todo = myTodos.find(todo => todo.id === id);
     if (todo.aiVerification) return; // AI 인증이 필요한 항목은 체크 불가능
 
-    setTodos(todos.map(todo => 
+    setMyTodos(myTodos.map(todo => 
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
   };
@@ -892,13 +1034,13 @@ const TodoPage = ({ onNavigate }) => {
   
   // Delete todo
   const handleDeleteTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+    setMyTodos(myTodos.filter(todo => todo.id !== id));
     setShowContextMenu({ ...showContextMenu, visible: false });
   };
   
   // Edit todo inline
   const handleEditTodo = (id) => {
-    const todo = todos.find(todo => todo.id === id);
+    const todo = myTodos.find(todo => todo.id === id);
     setEditingTodoId(id);
     setEditValue(todo.text);
     setShowContextMenu({ ...showContextMenu, visible: false });
@@ -908,7 +1050,7 @@ const TodoPage = ({ onNavigate }) => {
   const handleSaveEdit = (e, id) => {
     if (e.key === 'Enter' || e.type === 'blur') {
       if (editValue.trim()) {
-        setTodos(todos.map(todo => 
+        setMyTodos(myTodos.map(todo => 
           todo.id === id ? { ...todo, text: editValue } : todo
         ));
       }
@@ -916,20 +1058,26 @@ const TodoPage = ({ onNavigate }) => {
     }
   };
   
-  // Add new todo
+  // Add new todo (내 투두만 추가 가능)
   const handleAddTodo = () => {
+    if (selectedFriend) return; // 친구 선택 중에는 추가 불가능
+    
     if (newTodo.text.trim()) {
-      // Add new todo
-      const newId = Math.max(...todos.map(todo => todo.id), 0) + 1;
-      setTodos([...todos, { 
+      const newId = Math.max(...myTodos.map(todo => todo.id), 0) + 1;
+      setMyTodos([...myTodos, { 
         ...newTodo, 
         id: newId, 
         completed: false,
+        date: getDateFromIndex(selectedDate),
         verificationMethod: newTodo.aiVerification ? '위치 인증' : undefined
       }]);
       
-      // Reset form and close popup
-      setNewTodo({ category: 'Exercise', text: '', aiVerification: false });
+      setNewTodo({ 
+        category: 'Exercise', 
+        text: '', 
+        aiVerification: false,
+        date: getDateFromIndex(selectedDate)
+      });
       setShowAddTodoPopup(false);
     }
   };
@@ -950,7 +1098,7 @@ const TodoPage = ({ onNavigate }) => {
   
   // Reset new todo form when closing
   const handleCloseAddTodoPopup = () => {
-    setNewTodo({ category: 'Exercise', text: '', aiVerification: false });
+    setNewTodo({ category: 'Exercise', text: '', aiVerification: false, date: getDateFromIndex(selectedDate) });
     setShowAddTodoPopup(false);
   };
   
@@ -972,6 +1120,12 @@ const TodoPage = ({ onNavigate }) => {
       document.removeEventListener('click', handleDocumentClick);
     };
   }, [showContextMenu.visible]);
+
+  // 친구 선택 처리
+  const handleFriendSelect = (friendId) => {
+    setSelectedFriend(friendId === selectedFriend ? null : friendId);
+    setShowAddTodoPopup(false); // 친구 선택 시 팝업 닫기
+  };
 
   return (
     <>
@@ -1009,7 +1163,7 @@ const TodoPage = ({ onNavigate }) => {
                 key={friend.id}
                 color={friend.color}
                 selected={selectedFriend === friend.id}
-                onClick={() => setSelectedFriend(friend.id === selectedFriend ? null : friend.id)}
+                onClick={() => handleFriendSelect(friend.id)}
               >
                 {friend.name[0]}
               </FriendAvatar>
@@ -1019,11 +1173,18 @@ const TodoPage = ({ onNavigate }) => {
           
           <TodoContainer>
             <TodoHeader>
-              <TodoTitle>My Todos</TodoTitle>
-              <CreateTodoButton onClick={() => setShowAddTodoPopup(true)}>
-                Create a Todo with Tudung
-                <AddIcon>+</AddIcon>
-              </CreateTodoButton>
+              <TodoTitle>
+                {selectedFriend 
+                  ? `${friends.find(f => f.id === selectedFriend)?.name}'s Todos`
+                  : 'My Todos'
+                }
+              </TodoTitle>
+              {!selectedFriend && (
+                <CreateTodoButton onClick={() => setShowAddTodoPopup(true)}>
+                  Create a Todo with Tudung
+                  <AddIcon>+</AddIcon>
+                </CreateTodoButton>
+              )}
             </TodoHeader>
             
             <TodoList>
@@ -1037,7 +1198,7 @@ const TodoPage = ({ onNavigate }) => {
                       <TodoItem 
                         key={todo.id} 
                         index={index}
-                        onContextMenu={(e) => handleTodoContextMenu(e, todo.id)}
+                        onContextMenu={(e) => !selectedFriend && handleTodoContextMenu(e, todo.id)}
                       >
                         <Category type={todo.category}>{todo.category}</Category>
                         <TodoContent>
@@ -1064,8 +1225,8 @@ const TodoPage = ({ onNavigate }) => {
                             type="checkbox" 
                             checked={todo.completed}
                             onChange={() => handleTodoComplete(todo.id)}
-                            disabled={todo.aiVerification}
-                            style={{ cursor: todo.aiVerification ? 'not-allowed' : 'pointer' }}
+                            disabled={selectedFriend || todo.aiVerification}
+                            style={{ cursor: (selectedFriend || todo.aiVerification) ? 'not-allowed' : 'pointer' }}
                           />
                         </CheckboxContainer>
                       </TodoItem>
@@ -1076,9 +1237,11 @@ const TodoPage = ({ onNavigate }) => {
             </TodoList>
           </TodoContainer>
           
-          <FloatingAddButton onClick={() => setShowAddTodoPopup(true)}>
-            +
-          </FloatingAddButton>
+          {!selectedFriend && (
+            <FloatingAddButton onClick={() => setShowAddTodoPopup(true)}>
+              +
+            </FloatingAddButton>
+          )}
         </MainCard>
       </PageContainer>
       
