@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import PropTypes from 'prop-types';
 
+import axios from 'axios';
+
 // ================================
 // 🔸 Animations
 // ================================
