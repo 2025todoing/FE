@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // .env에서 설정한 주소를 불러옴
-const API_BASE = process.env.REACT_APP_API_BASE;
+const API_BASE = import.meta.env.VITE_BACKEND;
 
 // axiosInstance라는 "특수한 axios 객체"를 하나 만듦
 const axiosInstance = axios.create({

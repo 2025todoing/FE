@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import PropTypes from 'prop-types';
-
+import { login } from '../api/auth';
 import axios from 'axios';
 
 // ================================
@@ -43,6 +43,11 @@ const shake = keyframes`
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-5px); }
   40%, 80% { transform: translateX(5px); }
+`;
+
+const errorBorderPulse = keyframes`
+  0%, 100% { border-color: #FF5252; box-shadow: 0 0 0 1px rgba(255, 82, 82, 0.2); }
+  50% { border-color: #FF0000; box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.3); }
 `;
 
 // ================================
@@ -176,7 +181,8 @@ const InputField = styled.input`
   
   ${props => props.error && css`
     border-color: #FF5252;
-    animation: ${shake} 0.5s;
+    animation: ${shake} 0.5s, ${errorBorderPulse} 2s infinite;
+    background-color: rgba(255, 82, 82, 0.05);
   `}
 `;
 
@@ -369,8 +375,12 @@ const LoginForm = ({ onLoginSuccess }) => {
   const [emailAvailable, setEmailAvailable] = useState(true);
   const [nicknameAvailable, setNicknameAvailable] = useState(true);
   
+  // Login error states
+  const [loginError, setLoginError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (isSignup) {
@@ -384,9 +394,39 @@ const LoginForm = ({ onLoginSuccess }) => {
       // For now, successful signup automatically logs the user in as well
       if (onLoginSuccess) onLoginSuccess();
     } else {
-      console.log('Login attempted with:', { username, password });
-      // For the placeholder behavior, any input logs the user in
-      if (onLoginSuccess) onLoginSuccess();
+      console.log('API_BASE:', import.meta.env.VITE_BACKEND);
+      console.log('username type:', typeof username, 'value:', username);
+      console.log('password type:', typeof password, 'value:', password);
+      
+      try {
+        setLoginError(false);
+        setErrorMessage('');
+        
+        const response = await login(username, password);
+        console.log('Login response:', response);
+        
+        // Check response format based on the API contract
+        if (response.data.isSuccess && response.data.code === "COMMON200") {
+          // Store tokens in localStorage
+          localStorage.setItem('accessToken', response.data.result.accessToken);
+          localStorage.setItem('refreshToken', response.data.result.refreshToken);
+          
+          // Call the success callback
+          if (onLoginSuccess) onLoginSuccess();
+        } else if (response.data.isSuccess && response.data.code === "404") {
+          // Handle the case where member is not found
+          setLoginError(true);
+          setErrorMessage(response.data.message || '멤버를 찾을 수 없습니다.');
+        } else {
+          // Handle other error cases
+          setLoginError(true);
+          setErrorMessage('로그인에 실패했습니다. 다시 시도해주세요.');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        setLoginError(true);
+        setErrorMessage('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
@@ -592,7 +632,14 @@ const LoginForm = ({ onLoginSuccess }) => {
                 value={username}
                 color="#FF5252"
                 shine={fieldShine.username}
-                onChange={(e) => setUsername(e.target.value)}
+                error={loginError}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (loginError) {
+                    setLoginError(false);
+                    setErrorMessage('');
+                  }
+                }}
                 onFocus={() => activateShine('username')}
               />
             </FormGroup>
@@ -606,9 +653,19 @@ const LoginForm = ({ onLoginSuccess }) => {
                 value={password}
                 color="#4AD66D"
                 shine={fieldShine.password}
-                onChange={(e) => setPassword(e.target.value)}
+                error={loginError}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (loginError) {
+                    setLoginError(false);
+                    setErrorMessage('');
+                  }
+                }}
                 onFocus={() => activateShine('password')}
               />
+              {loginError && (
+                <ErrorMessage>{errorMessage}</ErrorMessage>
+              )}
             </FormGroup>
             
             <SubmitButton type="submit">Log In</SubmitButton>
