@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AlertPopup from './AlertPopup';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
+import { createTodo, fetchTodosByDate, updateTodo, toggleTodo, deleteTodo } from '../api/todo';
 
 // Animations
 const fadeIn = keyframes`
@@ -1032,15 +1033,30 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
   })();
   
   // Handle todo completion (내 투두만 체크 가능)
-  const handleTodoComplete = (id) => {
-    if (selectedFriend) return; // 친구의 투두는 체크 불가능
-    
-    const todo = myTodos.find(todo => todo.id === id);
-    if (todo.aiVerification) return; // AI 인증이 필요한 항목은 체크 불가능
+  const handleTodoComplete = async (id) => {
+    if (selectedFriend) return;
 
-    setMyTodos(myTodos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    const todo = myTodos.find(todo => todo.id === id);
+    if (!todo || todo.aiVerification) return;
+
+    const accessToken = localStorage.getItem('accessToken'); // ✅ 직접 불러오기
+    if (!accessToken) {
+      console.warn("❗ accessToken 없음");
+      return;
+    }
+
+    try {
+      const response = await toggleTodo(id, accessToken); // ✅ 호출
+      console.log("✅ 토글 성공 응답:", response);
+
+      setMyTodos(prevTodos =>
+        prevTodos.map(t =>
+          t.id === id ? { ...t, completed: !t.completed } : t
+        )
+      );
+    } catch (err) {
+      console.error('❌ TOGO 토글 실패:', err.response || err);
+    }
   };
   
   // Handle todo context menu
@@ -1053,6 +1069,10 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
       todoId
     });
   };
+
+  // 백은 labelName으로 reutnr이어서 바꾸는 함수
+  const formatLabel = (label) =>
+    label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
   
   // Handle document click to hide context menu
   const handleDocumentClick = (event) => {
@@ -1067,8 +1087,29 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
   };
   
   // Delete todo
-  const handleDeleteTodo = (id) => {
-    setMyTodos(myTodos.filter(todo => todo.id !== id));
+  const handleDeleteTodo = async (id) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const response = await deleteTodo(id, accessToken);
+      if (response.isSuccess && response.code === 'COMMON200') {
+        setMyTodos(prev => prev.filter(todo => todo.id !== id)); // 프론트에서도 제거
+      } else {
+        console.error('삭제 실패:', response.message);
+        alert(response.message || "삭제 실패");
+      }
+    } catch (error) {
+      console.error('❌ 삭제 오류:', error.response || error);
+      alert(
+        error.response?.data?.message ||
+        "서버 오류로 삭제에 실패했습니다."
+      );
+    }
+
     setShowContextMenu({ ...showContextMenu, visible: false });
   };
   
@@ -1081,40 +1122,73 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
   };
   
   // Save edit
-  const handleSaveEdit = (e, id) => {
+  const handleSaveEdit = async (e, id) => {
     if (e.key === 'Enter' || e.type === 'blur') {
-      if (editValue.trim()) {
-        setMyTodos(myTodos.map(todo => 
+      if (!editValue.trim()) return;
+
+      const todo = myTodos.find(t => t.id === id);
+      if (!todo) return;
+
+      const payload = {
+        content: editValue,
+        date: todo.date,
+        labelType: todo.category.toUpperCase(),
+      };
+
+      try {
+        const accessToken = localStorage.getItem('accessToken');
+        await updateTodo(id, payload, accessToken);
+
+        setMyTodos(myTodos.map(todo =>
           todo.id === id ? { ...todo, text: editValue } : todo
         ));
+        setEditingTodoId(null);
+      } catch (err) {
+        console.error('TOGO 수정 실패:', err);
       }
-      setEditingTodoId(null);
     }
   };
   
   // Add new todo (내 투두만 추가 가능)
-  const handleAddTodo = () => {
-    if (selectedFriend) return; // 친구 선택 중에는 추가 불가능
+    const handleAddTodo = async () => {
+      if (selectedFriend) return;
+      if (!newTodo.text.trim()) return;
+
+      const date = getDateFromIndex(selectedDate);
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const payload = {
+        content: newTodo.text,
+        todoDate: date,
+        labelType: newTodo.category.toUpperCase(),
+      };
+
+      try {
+        const response = await createTodo(payload, accessToken); // ✅ 여기서 API 함수 호출
+
+        if (response.data.isSuccess && response.data.code === 'COMMON200') {
+          const newId = Math.max(...myTodos.map(todo => todo.id), 0) + 1;
+          setMyTodos([...myTodos, {
+            ...newTodo,
+            id: newId,
+            date,
+            completed: false,
+          }]);
+          setNewTodo({ category: 'Exercise', text: '', aiVerification: false, date });
+          setShowAddTodoPopup(false);
+        } else {
+          alert(response.data.message || 'TOGO 생성 실패');
+        }
+      } catch (error) {
+        alert('TOGO 생성 중 오류가 발생했습니다.');
+        console.error(error);
+      }
+    };
     
-    if (newTodo.text.trim()) {
-      const newId = Math.max(...myTodos.map(todo => todo.id), 0) + 1;
-      setMyTodos([...myTodos, { 
-        ...newTodo, 
-        id: newId, 
-        completed: false,
-        date: getDateFromIndex(selectedDate),
-        verificationMethod: newTodo.aiVerification ? '위치 인증' : undefined
-      }]);
-      
-      setNewTodo({ 
-        category: 'Exercise', 
-        text: '', 
-        aiVerification: false,
-        date: getDateFromIndex(selectedDate)
-      });
-      setShowAddTodoPopup(false);
-    }
-  };
   
   // Scroll dates left
   const scrollDatesLeft = () => {
@@ -1186,6 +1260,43 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
       document.removeEventListener('click', handleDocumentClick);
     };
   }, [showContextMenu.visible]);
+
+
+  useEffect(() => {
+    const fetchTodos = async () => {
+      const date = getDateFromIndex(selectedDate);
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        console.warn("❗accessToken 없음: 로그인 필요");
+        return;
+      }
+
+      try {
+        const response = await fetchTodosByDate(date, accessToken); // ✅ 정확히 호출
+        console.log("✅ fetchTodosByDate 응답:", response);
+
+        if (response?.isSuccess && response?.code === 'COMMON200') {
+          const todos = response.result.map(todo => ({
+            id: todo.todoId,
+            text: todo.content,
+            category: formatLabel(todo.labelName),
+            completed: todo.isCompleted,
+            aiVerification: todo.isAiNeeded,
+            verificationMethod: todo.verificationMethod || '',
+            date: todo.todoDate,
+          }));
+          setMyTodos(todos);
+        } else {
+          console.error("❌ 실패 응답:", response.message);
+        }
+      } catch (err) {
+        console.error("🚨 fetchTodosByDate 오류:", err);
+      }
+    };
+
+    fetchTodos();
+  }, [selectedDate]);
+  
 
   // 친구 선택 처리
   const handleFriendSelect = (friendId) => {
