@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import AlertPopup from './AlertPopup';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
+import { fetchMyInfo } from '../api/user';
+
 
 // Animations
 const fadeIn = keyframes`
@@ -634,8 +636,8 @@ const MyPage = ({ onNavigate }) => {
   ]);
   
   const [userData, setUserData] = useState({
-    name: 'Sarah Kim',
-    email: 'sarah.kim@example.com',
+    name: '',
+    email: '',
 
     joinDate: 'April 12, 2024',
     profileImage: null
@@ -727,6 +729,36 @@ const MyPage = ({ onNavigate }) => {
       reader.readAsDataURL(file);
     }
   };
+
+  useEffect(() => {
+    console.log("📍 MyPage 렌더됨");
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    const loadUserInfo = async () => {
+      try {
+        const res = await fetchMyInfo(accessToken);
+        if (res.isSuccess && res.code === 'COMMON200') {
+          setUserData(prev => ({
+            ...prev,
+            name: res.result.name,
+            email: res.result.email,
+            // joinDate와 profileImage는 프론트 임의값 유지
+          }));
+        } else {
+          console.error('유저 정보 불러오기 실패:', res.message);
+        }
+      } catch (err) {
+        console.error('❌ 유저 정보 요청 실패:', err.response || err);
+      }
+    };
+
+    loadUserInfo();
+  }, []);
+  
   
   return (
     <>
