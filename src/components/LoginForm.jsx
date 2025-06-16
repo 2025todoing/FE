@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import PropTypes from 'prop-types';
 import { login } from '../api/auth';
+import { signup } from '../api/auth';
 import axios from 'axios';
 
 // ================================
@@ -382,18 +383,49 @@ const LoginForm = ({ onLoginSuccess }) => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🚨 handleSubmit 실행됨");
     
     if (isSignup) {
-      // Validate passwords match
       if (password !== confirmPassword) {
         setPasswordMatch(false);
         return;
       }
-      
-      console.log('Signup attempted with:', { email, password, nickname });
-      // For now, successful signup automatically logs the user in as well
-      if (onLoginSuccess) onLoginSuccess();
-    } else {
+
+      try {
+        console.log("🚨 handleSubmit 실행됨");
+        const response = await signup(email, password, nickname);
+        console.log('Signup response:', response);
+
+        if (response.data.isSuccess && response.data.code === "COMMON200") {
+          alert('회원가입이 완료되었습니다! 로그인 해주세요.');
+
+          // 모든 상태 초기화
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setNickname('');
+          setFieldShine({});
+          setPasswordMatch(true);
+          setEmailAvailable(true);
+          setNicknameAvailable(true);
+          setLoginError(false);
+          setErrorMessage('');
+
+          setIsSignup(false); // 로그인 화면으로 전환
+        } else {
+          setLoginError(true);
+          setErrorMessage(response.data.message || '회원가입에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        setLoginError(true);
+        setErrorMessage('회원가입 중 오류가 발생했습니다.');
+      }
+
+      return;
+    }
+
+     else {
       console.log('API_BASE:', import.meta.env.VITE_BACKEND);
       console.log('username type:', typeof username, 'value:', username);
       console.log('password type:', typeof password, 'value:', password);
