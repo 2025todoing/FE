@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import AlertPopup from './AlertPopup';
+import { sendChatSetting } from '../api/chat';
+
+
+
 
 // Animations
 const fadeIn = keyframes`
@@ -964,16 +968,31 @@ const CreateTodoPage = ({ onNavigate, onBack, onStartChat }) => {
     setSelectedFriend(friendId === selectedFriend ? null : friendId);
   };
   
-  // Start conversation handler
-  const handleStartConversation = () => {
-    // Pass todo details to the chat page
-    onStartChat && onStartChat({
-      startDate: formatDate(startDate),
+ 
+  //API
+const handleStartConversation = async () => {
+  try {
+    const settingData = {
+      category,
+      startDate: formatDate(startDate),  // 예: "2025-06-18"
       endDate: formatDate(endDate),
-      category: categories.find(cat => cat.value === category)?.label || category,
-      level: level
-    });
-  };
+      level,
+    };
+
+    const res = await sendChatSetting(settingData, accessToken);
+
+    if (res.isSuccess) {
+      console.log('✅ 챗봇 세션 설정 완료:', res);
+      // 👉 여기서 대화 페이지로 이동하거나 상태를 업데이트
+      onNavigate && onNavigate('chat'); // 예시: chat 페이지로 전환
+    } else {
+      alert('챗봇 세션 설정 실패: ' + res.message);
+    }
+  } catch (err) {
+    console.error('❌ 챗봇 세션 설정 중 에러 발생:', err);
+    alert('서버 오류로 설정을 저장하지 못했어요.');
+  }
+};
   
   return (
     <>
