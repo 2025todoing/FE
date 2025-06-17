@@ -3,6 +3,7 @@ import AlertPopup from './AlertPopup';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import { fetchMyInfo } from '../api/user';
+import { getfriends, deleteFriend, blockFriend } from '../api/friend';
 
 
 // Animations
@@ -567,18 +568,27 @@ const FriendCard = styled.div`
   }
 `;
 
+const avatarColors = ['#FF5252', '#4F87FF', '#FFD600', '#4AD66D', '#B344E2'];
+
 const FriendAvatar = styled.div`
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: ${props => props.color || '#4F87FF'};
+  background-color: ${({ index }) => avatarColors[index % avatarColors.length]};
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  margin-right: 1rem;
   font-size: 1.2rem;
+  margin-right: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const FriendInfo = styled.div`
@@ -643,14 +653,7 @@ const MyPage = ({ onNavigate }) => {
     profileImage: null
   });
   
-  // Sample friends data
-  const friends = [
-    { id: 1, name: 'Tom', status: 'Active 2h ago', color: '#FF5252' },
-    { id: 2, name: 'Lisa', status: 'Active now', color: '#4F87FF' },
-    { id: 3, name: 'Jack', status: 'Active 1d ago', color: '#FFD600' },
-    { id: 4, name: 'Emma', status: 'Active 5h ago', color: '#4AD66D' },
-    { id: 5, name: 'Mike', status: 'Active now', color: '#B344E2' }
-  ];
+  const [friends, setFriends] = useState([]);
   
   const handleEditProfile = () => {
     setShowEditModal(true);
@@ -670,14 +673,46 @@ const MyPage = ({ onNavigate }) => {
     alert('Logging out...');
   };
   
-  const handleRemoveFriend = (id) => {
-    // Remove friend logic would go here
-    alert(`Removing friend with ID: ${id}`);
+  const handleRemoveFriend = async (id) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      const res = await deleteFriend(id, accessToken);
+      if (res.isSuccess && res.code === 'COMMON200') {
+        setFriends(prev => prev.filter(friend => friend.id !== id));
+        alert('친구가 삭제되었습니다.');
+      } else {
+        alert(res.message || '삭제 실패');
+      }
+    } catch (err) {
+      console.error('❌ 친구 삭제 오류:', err.response || err);
+      alert('친구 삭제 중 오류 발생');
+    }
   };
   
-  const handleBlockFriend = (id) => {
-    // Block friend logic would go here
-    alert(`Blocking friend with ID: ${id}`);
+  const handleBlockFriend = async(id) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      const res = await blockFriend(id, accessToken);
+      if (res.isSuccess && res.code === 'COMMON200') {
+        setFriends(prev => prev.filter(friend => friend.id !== id));
+        alert('친구를 차단했습니다.');
+      } else {
+        alert(res.message || '차단 실패');
+      }
+    } catch (err) {
+      console.error('❌ 친구 차단 오류:', err.response || err);
+      alert('친구 차단 중 오류 발생');
+    }
   };
 
   // Check if there are unread notifications
@@ -757,6 +792,38 @@ const MyPage = ({ onNavigate }) => {
     };
 
     loadUserInfo();
+  }, []);
+
+  useEffect(() => {
+    const fetchFriends = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        console.warn('❗ accessToken 없음: 로그인 필요');
+        return;
+      }
+
+      try {
+        const response = await getfriends(accessToken);
+        if (response.isSuccess && response.code === 'COMMON200') {
+          const acceptedFriends = response.result
+            .filter(friend => friend.status === 'ACCEPTED')
+            .map(friend => ({
+              id: friend.id, // 또는 friend.friendId
+              name: friend.friendName,
+              status: 'Active now', // 필요시 백엔드에서 받아오는 값으로 변경 가능
+              color: friend.friendColor || '#4F87FF'
+            }));
+
+          setFriends(acceptedFriends);
+        } else {
+          console.error('친구 목록 실패:', response.message);
+        }
+      } catch (err) {
+        console.error('❌ 친구 목록 API 오류:', err.response || err);
+      }
+    };
+
+    fetchFriends();
   }, []);
   
   
@@ -884,9 +951,9 @@ const MyPage = ({ onNavigate }) => {
             <FriendsSection>
               <SectionTitle>Friends</SectionTitle>
               <FriendList>
-                {friends.map(friend => (
+                {friends.map((friend, index) => (
                   <FriendCard key={friend.id}>
-                    <FriendAvatar color={friend.color}>
+                    <FriendAvatar index={index}>
                       {friend.name[0]}
                     </FriendAvatar>
                     <FriendInfo>
