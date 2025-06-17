@@ -232,22 +232,28 @@ const FriendList = styled.div`
   }
 `;
 
+const avatarColors = ['#FF5252', '#4F87FF', '#FFD600', '#4AD66D', '#B344E2'];
+
 const FriendAvatar = styled.div`
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: ${props => props.color || '#4F87FF'};
-  margin-right: 1rem;
-  flex-shrink: 0;
+  background-color: ${({ index }) => avatarColors[index % avatarColors.length]};
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  position: relative;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  }
+  ;
   
   ${props => props.selected && `
     &:before {
@@ -1410,11 +1416,10 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
           </DateSelector>
           
           <FriendList>
-            {friends.map(friend => (
+            {friends.map((friend, index) => (
               <FriendAvatar
                 key={friend.id}
-                color={friend.color}
-                selected={selectedFriend === friend.id}
+                index={index}
                 onClick={() => handleFriendSelect(friend.id)}
               >
                 {friend.name[0]}
