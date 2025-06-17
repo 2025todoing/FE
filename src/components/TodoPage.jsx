@@ -3,6 +3,7 @@ import AlertPopup from './AlertPopup';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import { createTodo, fetchTodosByDate, updateTodo, toggleTodo, deleteTodo } from '../api/todo';
+import { getFriendTodos, getfriends, addFriends } from '../api/friend';
 
 // Animations
 const fadeIn = keyframes`
@@ -856,66 +857,12 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
   const [categories] = useState(['Exercise', 'Study', 'Work', 'Hobby', 'Other']);
   const [editingTodoId, setEditingTodoId] = useState(null);
   const [editValue, setEditValue] = useState('');
+
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [friendEmailInput, setFriendEmailInput] = useState('');
   
   // Sample friends data with their todos
-  const [friends] = useState([
-    { 
-      id: 1, 
-      name: 'Tom', 
-      color: '#FF5252',
-      todos: [
-        { 
-          id: 101, 
-          category: 'Exercise', 
-          text: '30분 조깅하기', 
-          completed: true, 
-          date: '2024-04-25',
-          aiVerification: false 
-        },
-        { 
-          id: 102, 
-          category: 'Study', 
-          text: '알고리즘 문제 풀기', 
-          completed: false, 
-          date: '2024-04-25',
-          aiVerification: true,
-          verificationMethod: '스크린샷 인증'
-        }
-      ]
-    },
-    { 
-      id: 2, 
-      name: 'Lisa', 
-      color: '#4F87FF',
-      todos: [
-        { 
-          id: 201, 
-          category: 'Work', 
-          text: '프로젝트 발표 준비', 
-          completed: false, 
-          date: '2024-04-25',
-          aiVerification: false 
-        }
-      ]
-    },
-    { 
-      id: 3, 
-      name: 'Jack', 
-      color: '#FFD600',
-      todos: [
-        { 
-          id: 301, 
-          category: 'Hobby', 
-          text: '기타 연습하기', 
-          completed: true, 
-          date: '2024-04-25',
-          aiVerification: false 
-        }
-      ]
-    },
-    { id: 4, name: 'Emma', color: '#4AD66D', todos: [] },
-    { id: 5, name: 'Mike', color: '#B344E2', todos: [] }
-  ]);
+  const [friends, setFriends] = useState([]);
 
   const [myTodos, setMyTodos] = useState([
     { 
@@ -1148,6 +1095,42 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
       }
     }
   };
+
+  // Add new friends
+  const handleAddFriend = async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      const response = await addFriends(friendEmailInput, accessToken);
+      if (response.isSuccess && response.code === 'COMMON200') {
+        alert('친구 요청을 보냈습니다!');
+        setShowAddFriend(false);
+        setFriendEmailInput('');
+
+        // 친구 목록 새로고침
+        const refreshed = await getfriends(accessToken);
+        const accepted = refreshed.result
+          .filter(f => f.status === 'ACCEPTED')
+          .map(f => ({
+            id: f.id,
+            name: f.friendName,
+            color: f.friendColor || '#4F87FF',
+            todos: []
+          }));
+        setFriends(accepted);
+      } else {
+        alert(response.message || '친구 추가 실패');
+      }
+    } catch (err) {
+      console.error('❌ 친구 추가 실패:', err);
+      alert('친구 추가 중 오류 발생');
+    }
+  };
+
   
   // Add new todo (내 투두만 추가 가능)
     const handleAddTodo = async () => {
@@ -1296,12 +1279,87 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
 
     fetchTodos();
   }, [selectedDate]);
+
+  useEffect(() => {
+    const fetchFriends = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        console.warn('❗ accessToken 없음: 로그인 필요');
+        return;
+      }
+
+      try {
+        const response = await getfriends(accessToken);
+        if (response.isSuccess && response.code === 'COMMON200') {
+          const friendList = response.result
+            .filter(friend => friend.status === 'ACCEPTED')
+            .map(friend => ({
+              id: friend.id, // friend.friendId
+              name: friend.friendName,
+              color: friend.friendColor || '#4F87FF',
+              todos: []
+            }));
+          setFriends(friendList);
+        } else {
+          console.error('친구 불러오기 실패:', response.message);
+        }
+      } catch (err) {
+        console.error('친구 목록 API 오류:', err.response || err);
+      }
+    };
+
+    fetchFriends();
+  }, []);
   
 
   // 친구 선택 처리
-  const handleFriendSelect = (friendId) => {
-    setSelectedFriend(friendId === selectedFriend ? null : friendId);
-    setShowAddTodoPopup(false); // 친구 선택 시 팝업 닫기
+  const handleFriendSelect = async (friendId) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    if (!friendId) {
+      console.warn('❗ friendId가 undefined입니다!');
+      return;
+    }
+
+    // 이미 선택한 친구를 다시 누르면 해제
+    if (selectedFriend === friendId) {
+      setSelectedFriend(null);
+      return;
+    }
+
+    setSelectedFriend(friendId);
+    setShowAddTodoPopup(false);
+
+    try {
+      const response = await getFriendTodos(friendId, accessToken);
+
+      if (response.isSuccess && response.code === 'COMMON200') {
+        const todos = response.result.map(todo => ({
+          id: todo.todoId,
+          text: todo.content,
+          category: formatLabel(todo.labelName),
+          completed: todo.isCompleted,
+          aiVerification: todo.isAiNeeded,
+          verificationMethod: todo.verificationMethod || '',
+          date: todo.todoDate,
+        }));
+
+        // 해당 친구의 todos를 friends 배열에 반영
+        setFriends(prev =>
+          prev.map(f =>
+            f.id === friendId ? { ...f, todos } : f
+          )
+        );
+      } else {
+        console.error('❌ 친구 투두 가져오기 실패:', response.message);
+      }
+    } catch (err) {
+      console.error('🚨 친구 투두 API 오류:', err.response || err);
+    }
   };
 
   return (
@@ -1353,7 +1411,7 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
           
           <FriendList>
             {friends.map(friend => (
-              <FriendAvatar 
+              <FriendAvatar
                 key={friend.id}
                 color={friend.color}
                 selected={selectedFriend === friend.id}
@@ -1362,7 +1420,7 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
                 {friend.name[0]}
               </FriendAvatar>
             ))}
-            <AddFriendButton>+</AddFriendButton>
+            <AddFriendButton onClick={() => setShowAddFriend(true)}>+</AddFriendButton>
           </FriendList>
           
           <TodoContainer>
@@ -1514,6 +1572,30 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
               disabled={!newTodo.text.trim()}
             >
               Add Todo
+            </SubmitButton>
+          </ButtonGroup>
+        </AddTodoForm>
+      </ModalOverlay>
+      <ModalOverlay show={showAddFriend} onClick={() => setShowAddFriend(false)}>
+        <AddTodoForm show={showAddFriend} onClick={(e) => e.stopPropagation()}>
+          <AddTodoTitle>Add Friend</AddTodoTitle>
+
+          <FormGroup>
+            <InputLabel>Friends's Email</InputLabel>
+            <TodoInput
+              value={friendEmailInput}
+              onChange={(e) => setFriendEmailInput(e.target.value)}
+              placeholder="example@email.com"
+            />
+          </FormGroup>
+
+          <ButtonGroup>
+            <CancelButton onClick={() => setShowAddFriend(false)}>cancel</CancelButton>
+            <SubmitButton
+              onClick={handleAddFriend}
+              disabled={!friendEmailInput.trim()}
+            >
+              Add
             </SubmitButton>
           </ButtonGroup>
         </AddTodoForm>
