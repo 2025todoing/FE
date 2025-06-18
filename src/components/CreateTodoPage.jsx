@@ -967,17 +967,29 @@ const CreateTodoPage = ({ onNavigate, onBack, onStartChat }) => {
   const handleFriendSelect = (friendId) => {
     setSelectedFriend(friendId === selectedFriend ? null : friendId);
   };
+
+  const toYMD = (date) => {
+    return date.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  };
   
  
   //API
 const handleStartConversation = async () => {
+  const accessToken = localStorage.getItem('accessToken'); 
+  if (!accessToken) {
+    console.warn("❗ accessToken 없음");
+    return;
+  }
+
   try {
     const settingData = {
       category,
-      startDate: formatDate(startDate),  // 예: "2025-06-18"
-      endDate: formatDate(endDate),
+      startDate: toYMD(startDate),
+      endDate: toYMD(endDate),
       level,
     };
+
+    console.log(settingData)
 
     const res = await sendChatSetting(settingData, accessToken);
 
