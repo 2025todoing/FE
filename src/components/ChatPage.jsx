@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
+import { sendChatMessage, saveChatPlan } from '../api/chat';
 
 // Animations
 const fadeIn = keyframes`
@@ -555,7 +556,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
   }, [messages]);
 
   // Handle sending a message
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return;
 
     // Add user message
@@ -566,82 +567,175 @@ const ChatPage = ({ onBack, todoDetails }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = message; // Store current message before clearing
     setMessage('');
 
-    // Simulate Todooungi's response after a short delay
-    setTimeout(() => {
-      simulateServerResponse();
-    }, 500);
+    // Handle API response
+    await handleApiResponse(currentMessage);
   };
 
-  // Simulate server response with random scenario selection
-  const simulateServerResponse = () => {
-    // 70% chance for normal message, 30% chance for plan response
-    const shouldShowPlan = Math.random() < 0.3;
+  // Handle API response from chat/message endpoint
+  const handleApiResponse = async (userMessage) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.error('❗ No access token found');
+      return;
+    }
 
-    if (shouldShowPlan) {
-      // Scenario 2: Plan response with loading and fireworks
-      const loadingMessage = {
-        id: messages.length + 2,
-        isUser: false,
-        isLoading: true
-      };
+    try {
+      // Send request to API first (without loading message)
+      const response = await sendChatMessage(userMessage, accessToken);
 
-      setMessages(prev => [...prev, loadingMessage]);
+      if (response.isSuccess) {
+        const promptResult = response.result.prompt;
+        
+        // Try to parse the prompt as JSON to check if it's a plan
+        let parsedPrompt;
+        try {
+          parsedPrompt = JSON.parse(promptResult);
+        } catch (e) {
+          // Not JSON, treat as normal string message
+          parsedPrompt = null;
+        }
 
-      // Show loading for 2 seconds, then show fireworks and popup
-      setTimeout(() => {
-        setShowFireworks(true);
+        if (parsedPrompt && parsedPrompt.type === 'plan') {
+          // Scenario 2: Plan response - show loading ONLY for plan generation
+          const loadingMessage = {
+            id: messages.length + 2,
+            isUser: false,
+            isLoading: true
+          };
+          setMessages(prev => [...prev, loadingMessage]);
 
-        // Mock plan data from server response
-        const mockPlanData = {
-          mainQuest: "영어 회화 능력 향상을 위한 계획 수립",
-          subQuests: [
-            { date: "2025-07-01", task: "TED 강연 영상 시청 (30분)" },
-            { date: "2025-07-02", task: "영어 주제 정리하고 연습 (1시간)" },
-            { date: "2025-07-03", task: "영어 교환 파트너와 대화 연습 (1시간)" }
-          ]
+          // Simulate plan generation time (2 seconds)
+          setTimeout(() => {
+            // Remove loading message
+            setMessages(prev => prev.filter(msg => !msg.isLoading));
+            
+            // Show fireworks and setup plan data
+            setShowFireworks(true);
+            
+            const planData = {
+              mainQuest: parsedPrompt.mainQuest,
+              subQuests: parsedPrompt.subQuests
+            };
+            
+            setPlanData(planData);
+
+            // Show fireworks for 1 second, then show popup
+            setTimeout(() => {
+              setShowFireworks(false);
+              setIsPlanPopupVisible(true);
+            }, 1000);
+          }, 2000);
+        } else {
+          // Scenario 1: Normal message response - no loading, immediate response
+          const todooungiResponse = {
+            id: messages.length + 2,
+            isUser: false,
+            text: promptResult // Use the raw string response
+          };
+
+          setMessages(prev => [...prev, todooungiResponse]);
+        }
+      } else {
+        // Show error message
+        const errorMessage = {
+          id: messages.length + 2,
+          isUser: false,
+          text: "죄송해요, 응답을 가져오는 중에 문제가 발생했어요. 다시 시도해주세요."
         };
-
-        setPlanData(mockPlanData);
-
-        // Remove loading message and show fireworks
-        setMessages(prev => prev.filter(msg => !msg.isLoading));
-
-        // Show fireworks for 1 second, then show popup
-        setTimeout(() => {
-          setShowFireworks(false);
-          setIsPlanPopupVisible(true);
-        }, 1000);
-      }, 2000);
-    } else {
-      // Scenario 1: Normal message response
-      const mockNormalResponse = {
-        prompt: "카테고리가 \"study\"인데 사용자가 야야라니... 어떤 공부를 하고 싶어? 냥!"
-      };
-
-      const todooungiResponse = {
+        
+        setMessages(prev => [...prev, errorMessage]);
+        console.error('API Error:', response.message);
+      }
+    } catch (error) {
+      // Show error message
+      const errorMessage = {
         id: messages.length + 2,
         isUser: false,
-        text: mockNormalResponse.prompt
+        text: "서버 연결에 문제가 있어요. 잠시 후 다시 시도해주세요."
       };
-
-      setMessages(prev => [...prev, todooungiResponse]);
+      
+      setMessages(prev => [...prev, errorMessage]);
+      console.error('Network Error:', error);
     }
   };
 
   // Handle plan acceptance
-  const handleAcceptPlan = () => {
-    setIsPlanPopupVisible(false);
+  const handleAcceptPlan = async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.error('❗ No access token found');
+      return;
+    }
 
-    const acceptMessage = {
-      id: messages.length + 1,
-      isUser: false,
-      text: "좋아요! 이 계획으로 시작해볼게요. 화이팅이에요! 💪"
-    };
+    if (!planData) {
+      console.error('❗ No plan data available');
+      return;
+    }
 
-    setMessages(prev => [...prev, acceptMessage]);
-    setPlanData(null);
+    try {
+      // Close popup first
+      setIsPlanPopupVisible(false);
+
+      // Show saving message
+      const savingMessage = {
+        id: messages.length + 1,
+        isUser: false,
+        text: "계획을 저장하고 있어요..."
+      };
+      setMessages(prev => [...prev, savingMessage]);
+
+      // Prepare data for API
+      const planPayload = {
+        mainQuest: planData.mainQuest,
+        subQuests: planData.subQuests
+      };
+
+      // Save plan to API
+      const response = await saveChatPlan(planPayload, accessToken);
+
+      // Remove saving message
+      setMessages(prev => prev.filter(msg => msg.text !== "계획을 저장하고 있어요..."));
+
+      if (response.isSuccess) {
+        // Show success message
+        const successMessage = {
+          id: messages.length + 1,
+          isUser: false,
+          text: "좋아요! 계획이 저장되었어요. 이제 시작해볼까요? 화이팅이에요! 💪"
+        };
+        setMessages(prev => [...prev, successMessage]);
+      } else {
+        // Show error message
+        const errorMessage = {
+          id: messages.length + 1,
+          isUser: false,
+          text: "계획 저장 중 문제가 발생했어요. 다시 시도해주세요."
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        console.error('Plan Save Error:', response.message);
+      }
+
+      // Clear plan data
+      setPlanData(null);
+    } catch (error) {
+      // Remove saving message
+      setMessages(prev => prev.filter(msg => msg.text !== "계획을 저장하고 있어요..."));
+      
+      // Show error message
+      const errorMessage = {
+        id: messages.length + 1,
+        isUser: false,
+        text: "서버 연결에 문제가 있어 계획을 저장하지 못했어요. 다시 시도해주세요."
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      console.error('Network Error while saving plan:', error);
+      
+      // Clear plan data
+      setPlanData(null);
+    }
   };
 
   // Handle plan rejection
