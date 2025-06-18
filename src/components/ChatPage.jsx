@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import { sendChatMessage, saveChatPlan } from '../api/chat';
+import todoongiImg from '../assets/images/todoi.png';
 
 // Animations
 const fadeIn = keyframes`
@@ -826,6 +827,31 @@ const ChatPage = ({ onBack, todoDetails }) => {
                   );
                 }
 
+                // AI 메시지(투둥이)일 때만 프로필 이미지 추가
+                if (!msg.isUser) {
+                  return (
+                    <div key={msg.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <img
+                        src={todoongiImg}
+                        alt="투둥이 프로필"
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          marginRight: 12,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          background: '#fff',
+                          border: '2px solid #FFD600',
+                          flexShrink: 0
+                        }}
+                      />
+                      <MessageBubble isUser={false}>{msg.text}</MessageBubble>
+                    </div>
+                  );
+                }
+
+                // 유저 메시지는 기존대로
                 return (
                   <MessageBubble key={msg.id} isUser={msg.isUser}>
                     {msg.text}
