@@ -21,3 +21,14 @@ export const sendChatMessage = async (prompt, token) => {
   
     return response.data; // { isSuccess, code, message, result }
   };
+
+export const saveChatPlan = async (planData, token) => {
+  const response = await axios.post('/api/todos/chat', planData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return response.data; // { isSuccess, code, message, result }
+};
