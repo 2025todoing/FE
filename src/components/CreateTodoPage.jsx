@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import BackgroundAnimation from './BackgroundAnimation';
 import AlertPopup from './AlertPopup';
+import { sendChatSetting } from '../api/chat';
+
+
+
 
 // Animations
 const fadeIn = keyframes`
@@ -963,17 +967,44 @@ const CreateTodoPage = ({ onNavigate, onBack, onStartChat }) => {
   const handleFriendSelect = (friendId) => {
     setSelectedFriend(friendId === selectedFriend ? null : friendId);
   };
-  
-  // Start conversation handler
-  const handleStartConversation = () => {
-    // Pass todo details to the chat page
-    onStartChat && onStartChat({
-      startDate: formatDate(startDate),
-      endDate: formatDate(endDate),
-      category: categories.find(cat => cat.value === category)?.label || category,
-      level: level
-    });
+
+  const toYMD = (date) => {
+    return date.toISOString().slice(0, 10); // "YYYY-MM-DD"
   };
+  
+ 
+  //API
+const handleStartConversation = async () => {
+  const accessToken = localStorage.getItem('accessToken'); 
+  if (!accessToken) {
+    console.warn("❗ accessToken 없음");
+    return;
+  }
+
+  try {
+    const settingData = {
+      category,
+      startDate: toYMD(startDate),
+      endDate: toYMD(endDate),
+      level,
+    };
+
+    console.log(settingData)
+
+    const res = await sendChatSetting(settingData, accessToken);
+
+    if (res.isSuccess) {
+      console.log('✅ 챗봇 세션 설정 완료:', res);
+      // 👉 여기서 대화 페이지로 이동하거나 상태를 업데이트
+      onNavigate && onNavigate('chat'); // 예시: chat 페이지로 전환
+    } else {
+      alert('챗봇 세션 설정 실패: ' + res.message);
+    }
+  } catch (err) {
+    console.error('❌ 챗봇 세션 설정 중 에러 발생:', err);
+    alert('서버 오류로 설정을 저장하지 못했어요.');
+  }
+};
   
   return (
     <>

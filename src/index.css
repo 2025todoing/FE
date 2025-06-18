@@ -8,7 +8,12 @@
   font-style: normal;
   font-display: swap;
 }
-
+@font-face {
+  font-family: 'SCDream';
+  src: url('./assets/fonts/SCDream4.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
 * {
   margin: 0;
   padding: 0;

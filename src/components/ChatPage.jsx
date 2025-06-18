@@ -8,6 +8,50 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const loadingDots = keyframes`
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+`;
+
+const starRotate = keyframes`
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+`;
+
+const starOpacity = keyframes`
+  0% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0.2; transform: scale(1); }
+`;
+
+const starSparkle = keyframes`
+  0% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+  25% { transform: translateY(-30px) translateX(20px) scale(1.2); opacity: 1; }
+  50% { transform: translateY(0) translateX(40px) scale(1.4); opacity: 0.8; }
+  75% { transform: translateY(30px) translateX(20px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+`;
+
+
+const popupSlideIn = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(0.7); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1); 
+  }
+`;
+
+const bounce = keyframes`
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+`;
+
 const pageEnter = keyframes`
   from {
     opacity: 0;
@@ -98,7 +142,7 @@ const BackButton = styled.button`
   }
   
   svg {
-    margin-right: 0.5rem;
+    margin-right: 0.5rem;ƒ
     width: 20px;
     height: 20px;
   }
@@ -240,76 +284,416 @@ const WelcomeText = styled.p`
   line-height: 1.6;
 `;
 
+const LoadingMessage = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  margin: 1rem 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  align-self: center;
+`;
+
+const LoadingText = styled.span`
+  font-size: 1.1rem;
+  color: #3A2618;
+  margin-right: 1rem;
+`;
+
+const LoadingDots = styled.div`
+  display: flex;
+  gap: 0.3rem;
+  
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4F87FF;
+    animation: ${loadingDots} 1.4s infinite ease-in-out;
+    
+    &:nth-child(1) { animation-delay: -0.32s; }
+    &:nth-child(2) { animation-delay: -0.16s; }
+    &:nth-child(3) { animation-delay: 0; }
+  }
+`;
+
+const FireworksOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 999;
+`;
+
+const CelebrationStar = styled.div`
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  opacity: 1;
+  z-index: 1001;
+  pointer-events: none;
+  
+  &:before {
+    content: "✦";
+    position: absolute;
+    color: ${props => props.color || 'gold'};
+    font-size: ${props => props.size || '24px'};
+    animation: ${starRotate} 2s linear infinite,
+               ${starOpacity} 2s ease-in-out infinite,
+               ${starSparkle} 3s ease-in-out forwards;
+    animation-delay: ${props => props.delay || '0s'};
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.9);
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+  }
+`;
+
+const PlanPopupOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: ${props => props.show ? 1 : 0};
+  visibility: ${props => props.show ? 'visible' : 'hidden'};
+  transition: all 0.3s ease;
+`;
+
+const PlanPopup = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  padding: 2rem;
+  animation: ${popupSlideIn} 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  max-height: 80vh;
+  overflow-y: auto;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-radius: 30px;
+    z-index: -1;
+    background: linear-gradient(45deg, 
+      #FF5252, #4F87FF, #FFD600, #4AD66D, 
+      #B344E2
+    );
+    opacity: 0.3;
+    filter: blur(15px);
+  }
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(180, 180, 180, 0.5);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+  }
+`;
+
+const PopupTitle = styled.h2`
+  font-family: 'SCDream', 'sans-serif';
+  font-size: 1.5rem;
+  color: #3A2618;
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+  animation: ${bounce} 1s ease-out;
+`;
+
+const MainQuest = styled.div`
+  background: linear-gradient(45deg, #4F87FF, #B344E2);
+  color: white;
+  padding: 1.2rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(79, 135, 255, 0.3);
+`;
+
+const MainQuestTitle = styled.h3`
+  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-size: 1.1rem;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+`;
+
+const SubQuestsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+`;
+
+const SubQuestItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  border-left: 4px solid #FFD600;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const QuestDate = styled.div`
+  background: #FFD600;
+  color: #3A2618;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+`;
+
+const QuestTask = styled.div`
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.4;
+`;
+
+const PopupButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+`;
+
+const PopupButton = styled.button`
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const AcceptButton = styled(PopupButton)`
+  background: linear-gradient(45deg, #4AD66D, #2196F3);
+  color: white;
+  
+  &:hover {
+    box-shadow: 0 6px 20px rgba(74, 214, 109, 0.4);
+  }
+`;
+
+const RejectButton = styled(PopupButton)`
+  background: rgba(255, 82, 82, 0.1);
+  color: #FF5252;
+  border: 2px solid #FF5252;
+  
+  &:hover {
+    background: #FF5252;
+    color: white;
+    box-shadow: 0 6px 20px rgba(255, 82, 82, 0.4);
+  }
+`;
+
 // ChatPage Component
 const ChatPage = ({ onBack, todoDetails }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
-    { 
-      id: 1, 
-      isUser: false, 
+    {
+      id: 1,
+      isUser: false,
       text: `안녕하세요! 저는 투둥이에요. "${todoDetails?.category || '운동'}" 할 일을 계획하고 정리하는 것을 도와드릴게요. 어떤 것을 도와드릴까요?`
     }
   ]);
-  
+  const [isPlanPopupVisible, setIsPlanPopupVisible] = useState(false);
+  const [showFireworks, setShowFireworks] = useState(false);
+  const [planData, setPlanData] = useState(null);
+
   const messagesEndRef = useRef(null);
-  
+
   // Scroll to bottom of messages when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
+
   // Handle sending a message
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    
+
     // Add user message
     const userMessage = {
       id: messages.length + 1,
       isUser: true,
       text: message
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
-    
+
     // Simulate Todooungi's response after a short delay
     setTimeout(() => {
+      simulateServerResponse();
+    }, 500);
+  };
+
+  // Simulate server response with random scenario selection
+  const simulateServerResponse = () => {
+    // 70% chance for normal message, 30% chance for plan response
+    const shouldShowPlan = Math.random() < 0.3;
+
+    if (shouldShowPlan) {
+      // Scenario 2: Plan response with loading and fireworks
+      const loadingMessage = {
+        id: messages.length + 2,
+        isUser: false,
+        isLoading: true
+      };
+
+      setMessages(prev => [...prev, loadingMessage]);
+
+      // Show loading for 2 seconds, then show fireworks and popup
+      setTimeout(() => {
+        setShowFireworks(true);
+
+        // Mock plan data from server response
+        const mockPlanData = {
+          mainQuest: "영어 회화 능력 향상을 위한 계획 수립",
+          subQuests: [
+            { date: "2025-07-01", task: "TED 강연 영상 시청 (30분)" },
+            { date: "2025-07-02", task: "영어 주제 정리하고 연습 (1시간)" },
+            { date: "2025-07-03", task: "영어 교환 파트너와 대화 연습 (1시간)" }
+          ]
+        };
+
+        setPlanData(mockPlanData);
+
+        // Remove loading message and show fireworks
+        setMessages(prev => prev.filter(msg => !msg.isLoading));
+
+        // Show fireworks for 1 second, then show popup
+        setTimeout(() => {
+          setShowFireworks(false);
+          setIsPlanPopupVisible(true);
+        }, 1000);
+      }, 2000);
+    } else {
+      // Scenario 1: Normal message response
+      const mockNormalResponse = {
+        prompt: "카테고리가 \"study\"인데 사용자가 야야라니... 어떤 공부를 하고 싶어? 냥!"
+      };
+
       const todooungiResponse = {
         id: messages.length + 2,
         isUser: false,
-        text: generateTodooungiResponse(message)
+        text: mockNormalResponse.prompt
       };
-      
+
       setMessages(prev => [...prev, todooungiResponse]);
-    }, 1000);
-  };
-  
-  // Generate a simple response from Todooungi (placeholder for actual AI)
-  const generateTodooungiResponse = (userMessage) => {
-    const lowerCaseMessage = userMessage.toLowerCase();
-    
-    if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi')) {
-      return "Hello! How can I help you with your todo today?";
-    } else if (lowerCaseMessage.includes('help')) {
-      return "I can help you plan and organize your tasks. Just tell me what you'd like to accomplish!";
-    } else if (lowerCaseMessage.includes('thank')) {
-      return "You're welcome! Is there anything else you'd like help with?";
-    } else if (lowerCaseMessage.includes('time') || lowerCaseMessage.includes('when')) {
-      return "When would you like to schedule this task? Morning, afternoon, or evening?";
-    } else if (lowerCaseMessage.includes('how')) {
-      return "I can guide you through this step by step. What specific aspect would you like help with?";
-    } else {
-      return "That's a great idea! Would you like me to add this to your todo list or would you like some suggestions to break this down into smaller tasks?";
     }
   };
-  
+
+  // Handle plan acceptance
+  const handleAcceptPlan = () => {
+    setIsPlanPopupVisible(false);
+
+    const acceptMessage = {
+      id: messages.length + 1,
+      isUser: false,
+      text: "좋아요! 이 계획으로 시작해볼게요. 화이팅이에요! 💪"
+    };
+
+    setMessages(prev => [...prev, acceptMessage]);
+    setPlanData(null);
+  };
+
+  // Handle plan rejection
+  const handleRejectPlan = () => {
+    setIsPlanPopupVisible(false);
+
+    const rejectMessage = {
+      id: messages.length + 1,
+      isUser: false,
+      text: "알겠어요! 다른 계획을 다시 생각해볼게요. 어떤 부분을 바꾸고 싶으신가요?"
+    };
+
+    setMessages(prev => [...prev, rejectMessage]);
+    setPlanData(null);
+  };
+
+  // Generate celebration stars positions
+  const generateCelebrationStars = () => {
+    const stars = [];
+    const colors = ['gold', '#FFD600', '#FF5252', '#4F87FF', '#4AD66D', '#B344E2'];
+    const sizes = ['20px', '24px', '28px', '16px'];
+
+    // Create stars in a burst pattern around the popup
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * 30) * (Math.PI / 180); // 30 degree intervals
+      const radius = 150 + Math.random() * 100; // Random radius from center
+      const centerX = 50; // Center X percentage
+      const centerY = 50; // Center Y percentage
+
+      const x = centerX + (radius * Math.cos(angle) / window.innerWidth) * 100;
+      const y = centerY + (radius * Math.sin(angle) / window.innerHeight) * 100;
+
+      stars.push({
+        id: i,
+        top: Math.max(5, Math.min(95, y)) + '%',
+        left: Math.max(5, Math.min(95, x)) + '%',
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: sizes[Math.floor(Math.random() * sizes.length)],
+        delay: (Math.random() * 0.8) + 's'
+      });
+    }
+
+    return stars;
+  };
+
   // Handle Enter key press in input
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSendMessage();
     }
   };
-  
+
   return (
     <>
       <BackgroundAnimation />
@@ -318,13 +702,13 @@ const ChatPage = ({ onBack, todoDetails }) => {
           <Header>
             <BackButton onClick={onBack}>
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
               </svg>
               이전으로
             </BackButton>
             <Logo>Todooungi</Logo>
           </Header>
-          
+
           <ChatContainer>
             <MessagesContainer>
               <WelcomeMessage>
@@ -333,35 +717,101 @@ const ChatPage = ({ onBack, todoDetails }) => {
                   할 일을 계획하고 달성하는 데 도움을 드릴게요. 함께 효과적으로 할 일을 관리해보아요!
                 </WelcomeText>
               </WelcomeMessage>
-              
-              {messages.map(msg => (
-                <MessageBubble key={msg.id} isUser={msg.isUser}>
-                  {msg.text}
-                </MessageBubble>
-              ))}
+
+              {messages.map(msg => {
+                if (msg.isLoading) {
+                  return (
+                    <LoadingMessage key={msg.id}>
+                      <LoadingText>잠시만 기다리라냥...</LoadingText>
+                      <LoadingDots>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </LoadingDots>
+                    </LoadingMessage>
+                  );
+                }
+
+                return (
+                  <MessageBubble key={msg.id} isUser={msg.isUser}>
+                    {msg.text}
+                  </MessageBubble>
+                );
+              })}
               <div ref={messagesEndRef} />
             </MessagesContainer>
-            
+
             <InputContainer>
-              <MessageInput 
-                type="text" 
-                placeholder="메시지를 입력하세요..." 
+              <MessageInput
+                type="text"
+                placeholder="메시지를 입력하세요..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
               />
-              <SendButton 
+              <SendButton
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+                  <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z" />
                 </svg>
               </SendButton>
             </InputContainer>
           </ChatContainer>
         </MainCard>
       </PageContainer>
+
+      {/* Celebration Stars Animation */}
+      {showFireworks && (
+        <FireworksOverlay>
+          {generateCelebrationStars().map(star => (
+            <CelebrationStar
+              key={star.id}
+              color={star.color}
+              size={star.size}
+              delay={star.delay}
+              style={{
+                top: star.top,
+                left: star.left
+              }}
+            />
+          ))}
+        </FireworksOverlay>
+      )}
+
+      {/* Plan Popup */}
+      <PlanPopupOverlay show={isPlanPopupVisible} onClick={() => setIsPlanPopupVisible(false)}>
+        <PlanPopup onClick={(e) => e.stopPropagation()}>
+          <PopupTitle>이런 계획 어때?</PopupTitle>
+
+          {planData && (
+            <>
+              <MainQuest>
+                <MainQuestTitle>{planData.mainQuest}</MainQuestTitle>
+              </MainQuest>
+
+              <SubQuestsList>
+                {planData.subQuests.map((quest, index) => (
+                  <SubQuestItem key={index}>
+                    <QuestDate>{quest.date}</QuestDate>
+                    <QuestTask>{quest.task}</QuestTask>
+                  </SubQuestItem>
+                ))}
+              </SubQuestsList>
+
+              <PopupButtons>
+                <AcceptButton onClick={handleAcceptPlan}>
+                  ✅ 이 계획으로 진행할래
+                </AcceptButton>
+                <RejectButton onClick={handleRejectPlan}>
+                  ❌ 다시 짤래
+                </RejectButton>
+              </PopupButtons>
+            </>
+          )}
+        </PlanPopup>
+      </PlanPopupOverlay>
     </>
   );
 };
