@@ -584,8 +584,17 @@ const ChatPage = ({ onBack, todoDetails }) => {
     }
 
     try {
-      // Send request to API first (without loading message)
-      const response = await sendChatMessage(userMessage, accessToken);
+      
+      // 1. 전체 메시지를 role 기반으로 포맷팅
+      const fullContext = messages.filter(msg => !msg.isLoading)
+      .map(msg => ({ role: msg.isUser ? 'user' : 'assistant', content: msg.text}));
+
+      // 2. 새 유저 메시지도 추가
+      fullContext.push({ role: 'user', content: userMessage});
+
+      // 3. GPT에게 보내기
+      const response = await sendChatMessage(fullContext, accessToken);
+
 
       if (response.isSuccess) {
         const promptResult = response.result.prompt;
