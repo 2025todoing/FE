@@ -787,7 +787,7 @@ const MyPage = ({ onNavigate }) => {
           console.error('유저 정보 불러오기 실패:', res.message);
         }
       } catch (err) {
-        console.error('❌ 유저 정보 요청 실패:', err.response || err);
+        console.error(' 유저 정보 요청 실패:', err.response || err);
       }
     };
 
@@ -798,7 +798,7 @@ const MyPage = ({ onNavigate }) => {
     const fetchFriends = async () => {
       const accessToken = localStorage.getItem('accessToken');
       if (!accessToken) {
-        console.warn('❗ accessToken 없음: 로그인 필요');
+        console.warn(' accessToken 없음: 로그인 필요');
         return;
       }
 
@@ -819,7 +819,7 @@ const MyPage = ({ onNavigate }) => {
           console.error('친구 목록 실패:', response.message);
         }
       } catch (err) {
-        console.error('❌ 친구 목록 API 오류:', err.response || err);
+        console.error(' 친구 목록 API 오류:', err.response || err);
       }
     };
 
