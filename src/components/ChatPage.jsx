@@ -542,7 +542,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
     {
       id: 1,
       isUser: false,
-      text: `안녕하세요! 저는 투둥이에요. "${todoDetails?.category || '운동'}" 할 일을 계획하고 정리하는 것을 도와드릴게요. 어떤 것을 도와드릴까요?`
+      text: `안녕하세요! 저는 투둥이에요. 할 일을 계획하고 정리하는 것을 도와드릴게요. 어떤 것을 도와드릴까요?`
     }
   ]);
   const [isPlanPopupVisible, setIsPlanPopupVisible] = useState(false);
