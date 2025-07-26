@@ -551,28 +551,48 @@ const ChatPage = ({ onBack, todoDetails }) => {
 
   const messagesEndRef = useRef(null);
 
+
+  // [추가] 1초 디바운스용 상태와 타이머
+  const [pendingMessages, setPendingMessages] = useState([]);
+  const debounceTimer = useRef(null);
+
   // Scroll to bottom of messages when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle sending a message
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!message.trim()) return;
-
-    // Add user message
-    const userMessage = {
-      id: messages.length + 1,
+  
+    const newMessage = {
+      id: messages.length + pendingMessages.length + 1,
       isUser: true,
       text: message
     };
-
-    setMessages(prev => [...prev, userMessage]);
-    const currentMessage = message; // Store current message before clearing
+  
+    // 화면에는 바로 추가
+    setMessages(prev => [...prev, newMessage]);
+    // 큐에 쌓아둠 (API 아직 안 보냄)
+    setPendingMessages(prev => [...prev, newMessage]);
     setMessage('');
+  
+    // 디바운스: 1초 동안 추가 입력 없으면 한꺼번에 보내기
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(() => {
+      flushPendingMessages();
+    }, 1000);
+  };
 
-    // Handle API response
-    await handleApiResponse(currentMessage);
+  const flushPendingMessages = async () => {
+    if (pendingMessages.length === 0) return;
+  
+    // 여러 메시지를 줄바꿈으로 합쳐서 한 번에 보냄
+    const batchedText = pendingMessages.map(m => m.text).join('\n');
+    setPendingMessages([]); // 큐 비우기
+  
+    await handleApiResponse(batchedText);
   };
 
   // Handle API response from chat/message endpoint
