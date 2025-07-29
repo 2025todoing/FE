@@ -569,7 +569,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
       isUser: true,
       text: message
     };
-  
+    console.log('[SEND]', newMessage.text, '타이머 초기화 시각:', Date.now());
     // 화면에는 바로 추가
     setMessages(prev => [...prev, newMessage]);
     // 큐에 쌓아둠 (API 아직 안 보냄)
@@ -579,17 +579,21 @@ const ChatPage = ({ onBack, todoDetails }) => {
     // 디바운스: 1초 동안 추가 입력 없으면 한꺼번에 보내기
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
+      console.log('[TIMER] 기존 타이머 클리어');
     }
     debounceTimer.current = setTimeout(() => {
+      console.log('[TIMER] 타이머 만료 → flush 실행', Date.now());
       flushPendingMessages();
     }, 1000);
   };
 
   const flushPendingMessages = async () => {
+    console.log('[FLUSH] 보낼 메시지 없음');
     if (pendingMessages.length === 0) return;
   
     // 여러 메시지를 줄바꿈으로 합쳐서 한 번에 보냄
     const batchedText = pendingMessages.map(m => m.text).join('\n');
+    console.log('[FLUSH] 전송할 메시지 묶음:', batchedText);
     setPendingMessages([]); // 큐 비우기
   
     await handleApiResponse(batchedText);
