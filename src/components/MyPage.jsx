@@ -35,7 +35,7 @@ const PageContainer = styled.div`
   align-items: center;
   min-height: 100vh;
   background-color: transparent;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   position: relative;
   z-index: 1;
   padding: 2rem;
@@ -73,7 +73,7 @@ const Header = styled.header`
 `;
 
 const Logo = styled.div`
-  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-family: var(--font-sans);
   font-size: 2.2rem;
   color: #3A2618;
   cursor: pointer;
@@ -94,7 +94,7 @@ const NavMenu = styled.div`
 const NavButton = styled.button`
   background: none;
   border: none;
-  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-family: var(--font-sans);
   font-size: 1.1rem;
   color: #3A2618;
   padding: 0.6rem 1.2rem;
@@ -166,7 +166,7 @@ const ProfileContainer = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-family: var(--font-sans);
   font-size: 2rem;
   color: #3A2618;
   margin: 0 0 1.5rem 0;
@@ -320,7 +320,7 @@ const EditButton = styled.button`
   color: white;
   border: none;
   border-radius: 50px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -470,7 +470,7 @@ const EditProfileForm = styled.div`
 `;
 
 const FormTitle = styled.h3`
-  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-family: var(--font-sans);
   font-size: 1.8rem;
   color: #3A2618;
   margin: 0 0 1.5rem 0;

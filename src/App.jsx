@@ -1,61 +1,60 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+
 import LandingPage from './components/LandingPage';
 import TodoPage from './components/TodoPage';
 import MyPage from './components/MyPage';
 import CreateTodoPage from './components/CreateTodoPage';
 import ChatPage from './components/ChatPage';
+import VerifyPage from './components/VerifyPage';
+import AuthPage from './components/AuthPage';
 
-function App() {
+export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState('todo');
   const [todoDetails, setTodoDetails] = useState(null);
-  
-  // Function to handle successful login
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
-  
-  // Function to handle navigation
-  const handleNavigation = (page) => {
-    setCurrentPage(page);
-  };
-  
-  // Function to start a chat with Todooungi
-  const handleStartChat = (details) => {
-    setTodoDetails(details);
-    setCurrentPage('chat');
-  };
-  
-  // Render the appropriate page based on login status and current page
-  const renderPage = () => {
-    if (!isLoggedIn) {
-      return <LandingPage onLoginSuccess={handleLogin} />;
-    }
-    
-    switch (currentPage) {
-      case 'mypage':
-        return <MyPage onNavigate={handleNavigation} />;
-      case 'createTodo':
-        return <CreateTodoPage 
-          onNavigate={handleNavigation} 
-          onBack={() => handleNavigation('todo')}
-          onStartChat={handleStartChat}
-        />;
-      case 'chat':
-        return <ChatPage 
-          onBack={() => handleNavigation('todo')}
-          todoDetails={todoDetails}
-        />;
-      case 'todo':
-      default:
-        return <TodoPage 
-          onNavigate={handleNavigation} 
-          onCreateTodo={() => handleNavigation('createTodo')}
-        />;
-    }
-  };
-  
-  return renderPage();
+  return (
+    <AppRoutes
+      isLoggedIn={isLoggedIn}
+      setIsLoggedIn={setIsLoggedIn}
+      todoDetails={todoDetails}
+      setTodoDetails={setTodoDetails}
+    />
+  );
 }
 
-export default App;
+function AppRoutes({ isLoggedIn, setIsLoggedIn, todoDetails, setTodoDetails }) {
+  const nav = useNavigate();
+  const onLoginSuccess = () => { setIsLoggedIn(true); nav('/app/todo', { replace: true }); };
+
+  return (
+    <Routes>
+      {!isLoggedIn ? (
+        <>
+          <Route path="/" element={<LandingPage onLoginSuccess={onLoginSuccess} />} />
+          <Route path="/auth" element={<AuthPage onLoginSuccess={onLoginSuccess} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      ) : (
+        <>
+          <Route path="/app/todo" element={
+            <TodoPage
+              onNavigate={(p) => nav(`/app/${p}`)}
+              onCreateTodo={() => nav('/app/create')}
+            />
+          } />
+          <Route path="/app/mypage" element={<MyPage onNavigate={(p) => nav(`/app/${p}`)} />} />
+          <Route path="/app/create" element={
+            <CreateTodoPage
+              onNavigate={(p) => nav(`/app/${p}`)}
+              onBack={() => nav('/app/todo')}
+              onStartChat={(details) => { setTodoDetails(details); nav('/app/chat'); }}
+            />
+          } />
+          <Route path="/app/chat" element={<ChatPage onBack={() => nav('/app/todo')} todoDetails={todoDetails} />} />
+          <Route path="/app/verify" element={<VerifyPage onNavigate={(p) => nav(`/app/${p}`)} />} />
+          <Route path="*" element={<Navigate to="/app/todo" replace />} />
+        </>
+      )}
+    </Routes>
+  );
+}

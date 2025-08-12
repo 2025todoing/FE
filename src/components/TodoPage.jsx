@@ -44,7 +44,7 @@ const PageContainer = styled.div`
   align-items: center;
   min-height: 100vh;
   background-color: transparent;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   position: relative;
   z-index: 1;
   padding: 2rem;
@@ -82,7 +82,7 @@ const Header = styled.header`
 `;
 
 const Logo = styled.div`
-  font-family: 'Nostalgia', 'Pacifico', cursive;
+  font-family: var(--font-sans);
   font-size: 2.2rem;
   color: #3A2618;
   cursor: pointer;
@@ -1154,6 +1154,7 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
         content: newTodo.text,
         todoDate: date,
         labelType: newTodo.category.toUpperCase(),
+        isAiNeeded: newTodo.aiVerification,
       };
 
       try {
@@ -1473,7 +1474,13 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
                           )}
                           {todo.aiVerification && (
                             <AiVerificationTag>
-                              AI 인증 방법: {todo.verificationMethod} <span>(인증하러 가기)</span>
+                              AI 인증 방법: {todo.verificationMethod}{" "}
+                              <span
+                                onClick={() => onNavigate && onNavigate('verify')}
+                                style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
+                              >
+                                (인증하러 가기)
+                              </span>
                             </AiVerificationTag>
                           )}
                         </TodoContent>
