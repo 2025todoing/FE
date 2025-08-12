@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
 import PropTypes from 'prop-types';
 import { login } from '../api/auth';
 import { signup } from '../api/auth';
@@ -59,17 +60,26 @@ const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2.5rem;
+
+  /* padding 수정, 모두 화면 크기에 맞게 부드럽게 반응으로*/
+  padding: clamp(12px, 3vw, 24px);
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(10px);
-  border-radius: 25px;
+  border-radius: clamp(16px, 2vw, 24px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  width: 390px;
+
+  /* width:390px ->화면에 맞춰 자동: 최소 320 ~ 최대 640 */
+  width: clamp(300px, 86vw, 520px);
+
   opacity: 0;
   animation: ${fadeIn} 0.8s ease-out forwards;
   animation-delay: 0.2s;
   position: relative;
   overflow: hidden;
+
+  @media(max-height: 680px ) {
+    padding: 12px;
+  }
   
   &::before {
     content: '';
@@ -91,9 +101,9 @@ const FormContainer = styled.div`
 
 const FormTitle = styled.h2`
   font-family: 'Nostalgia', 'Pacifico', cursive;
-  font-size: 2.5rem;
+  font-size: clamp(20px, 2.8vw, 28px);
   color: #3A2618;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(8px, 1.8vw, 16px);
   text-align: center;
   animation: ${float} 4s ease-in-out infinite;
 `;
@@ -144,15 +154,20 @@ const InputRow = styled.div`
   gap: 0.5rem;
 `;
 
-const InputField = styled.input`
+const InputField = styled.input.withConfig({ shouldForwardProp: (prop) => !['shine', 'error', 'color'].includes(prop), })`
   width: 100%;
-  padding: 0.8rem 1.2rem;
+  /* iOS 줌 방지 최소 16px 확보하면서, 화면에 맞춰 유동 */
+  font-size: clamp(16px, 1.8vw, 18px);
+  line-height: 1.5;
+  padding: clamp(16px, 3.8vw, 18px) clamp(18px, 4.4vw, 22px);
+  min-height: 56px;
+
   font-family: 'Nunito', sans-serif;
-  font-size: 1rem;
+  font-size: clamp(16px, 1.9vw, 18px);
   color: #3A2618;
   background: rgba(255, 255, 255, 0.8);
   border: 2px solid transparent;
-  border-radius: 50px;
+  border-radius: 9999px;
   outline: none;
   transition: all 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -198,7 +213,7 @@ const InputLabel = styled.label`
 `;
 
 const CheckButton = styled.button`
-  padding: 0.8rem 1rem;
+  padding: clamp(10px, 2vw, 12px) clamp(10px, 2.4vw, 12px);
   flex-shrink: 0;
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
@@ -239,8 +254,8 @@ const ErrorMessage = styled.div`
 const SocialButtonsContainer = styled.div`
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
-  margin-top: 1rem;
+  gap: clamp(10px, 2vw, 16px);
+  margin-top: clamp(8px, 2vw, 12px);
   width: 100%;
   animation: ${fadeIn} 0.8s ease-out forwards;
   animation-delay: 0.8s;
@@ -248,8 +263,8 @@ const SocialButtonsContainer = styled.div`
 `;
 
 const SocialButton = styled.button`
-  width: 3.5rem;
-  height: 3.5rem;
+  width: clamp(40px, 4.6vw, 52px);
+  height: clamp(40px, 4.6vw, 52px);
   border-radius: 50%;
   border: none;
   background: ${props => props.bgColor};
@@ -276,7 +291,7 @@ const StyledOr = styled.div`
   display: flex;
   align-items: center;
   width: 100%;
-  margin: 1.2rem 0;
+  margin: clamp(8px, 2vw, 12px) 0;
   animation: ${fadeIn} 0.8s ease-out forwards;
   animation-delay: 0.7s;
   opacity: 0;
@@ -298,8 +313,8 @@ const StyledOr = styled.div`
 
 const SubmitButton = styled.button`
   width: 100%;
-  padding: 1rem;
-  margin-top: 0.5rem;
+  padding: clamp(14px, 3vw, 16px);
+  margin-top: clamp(6px, 1.4vw, 8px);
   font-family: 'Nostalgia', 'Pacifico', cursive;
   font-size: 1.2rem;
   color: white;
@@ -356,6 +371,13 @@ const ToggleFormText = styled.p`
   }
 `;
 
+/* 모션 민감한 기기 배려: 애니메이션 최소화 */
+const ReducedMotionGlobal = createGlobalStyle`
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+`;
+
 // ================================
 // 🔸 Main Component
 // ================================
@@ -363,6 +385,18 @@ const ToggleFormText = styled.p`
 const LoginForm = ({ onLoginSuccess }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [fieldShine, setFieldShine] = useState({});
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const mode = new URLSearchParams(location.search).get('mode');
+    setIsSignup(mode === 'signup');
+    }, [location.search]);
+  
+  const setMode = (mode) => {
+    setIsSignup(mode === 'signup');
+    navigate(`/auth?mode=${mode}`, { replace: true });
+    };
   
   // Form fields
   const [username, setUsername] = useState('');
@@ -512,7 +546,7 @@ const LoginForm = ({ onLoginSuccess }) => {
   };
 
   return (
-    <FormContainer isSignup={isSignup}>
+    <FormContainer>
       {isSignup ? (
         <>
           <SmallLogo>Todooungi</SmallLogo>
@@ -520,12 +554,12 @@ const LoginForm = ({ onLoginSuccess }) => {
           
           <form onSubmit={handleSubmit} style={{width: '100%'}}>
             <FormGroup>
-              <InputLabel htmlFor="email">Email</InputLabel>
+              <InputLabel htmlFor="username">이메일 </InputLabel>
               <InputRow>
                 <InputField 
                   type="email" 
                   id="email" 
-                  placeholder="Enter your email" 
+                  placeholder="이메일을 입력해 주세요." 
                   value={email}
                   color="#FF5252"
                   shine={fieldShine.email}
@@ -647,7 +681,7 @@ const LoginForm = ({ onLoginSuccess }) => {
           </SocialButtonsContainer>
           
           <ToggleFormText>
-            계정이 있으신가요? <span onClick={toggleForm}>LogIn</span>
+            계정이 있으신가요? <span onClick={() => setMode('login')}>LogIn</span>
           </ToggleFormText>
         </>
       ) : (
@@ -656,11 +690,11 @@ const LoginForm = ({ onLoginSuccess }) => {
           
           <form onSubmit={handleSubmit} style={{width: '100%'}}>
             <FormGroup>
-              <InputLabel htmlFor="username">Username</InputLabel>
+              <InputLabel htmlFor="username">Email</InputLabel>
               <InputField 
                 type="text" 
                 id="username" 
-                placeholder="Enter your username" 
+                placeholder="이메일을 입력해 주세요." 
                 value={username}
                 color="#FF5252"
                 shine={fieldShine.username}
@@ -677,11 +711,11 @@ const LoginForm = ({ onLoginSuccess }) => {
             </FormGroup>
             
             <FormGroup>
-              <InputLabel htmlFor="password">Password</InputLabel>
+              <InputLabel htmlFor="password">비밀번호</InputLabel>
               <InputField 
                 type="password" 
                 id="password" 
-                placeholder="Enter your password" 
+                placeholder="비밀번호를 입력해 주세요." 
                 value={password}
                 color="#4AD66D"
                 shine={fieldShine.password}

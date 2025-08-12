@@ -8,11 +8,22 @@
   font-style: normal;
   font-display: swap;
 }
+
+@font-face {
+  font-family: 'Pretendard Variable';
+  src: url('/fonts/pretendard/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 1 999;
+  /* 가변 폰트 가중치 범위 */
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'SCDream';
   src: url('./assets/fonts/SCDream4.otf') format('opentype');
-  font-weight: normal;
+  font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 * {
   margin: 0;
@@ -20,31 +31,127 @@
   box-sizing: border-box;
 }
 
-:root {
-  --nostalgia-font: 'Nostalgia', 'Pacifico', cursive;
-}
 
-body {
-  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+:root {
+  --font-sans: 'Pretendard Variable',
+    Pretendard,
+    'Apple SD Gothic Neo',
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
     sans-serif;
+  --font-brand: 'Nostalgia', 'Pacifico', cursive;
+}
+/* 웹앱 형태로 변환하기위해 스크롤 값 추가*/
+html, body, #root {min-height: 100%;}
+html, body {margin: 0;}
+body {
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  /*전역 스크롤 막지 않기*/
+  /*overflow: hidden;*/
+
+  /*페이지가 길어지면 스크롤 가능 기능 추가*/
+  -webkit-overflow-scrolling: touch;
   background-color: #f8f9fa;
   cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle></svg>") 12 12, auto;
 }
+
+/*이미지가 화면을 넘는 문제 해결*/
+img, video, canvas, svg {max-width: 100%; height: auto; display: block;}
 
 button, a, input, select, textarea {
   font-family: var(--nostalgia-font);
 }
 
-/* Custom cursor on clickable elements */
-button, a, [role="button"] {
-  cursor: pointer;
+/*클릭 가능한 요소 커서*/
+button, a, [role="button"] {cursor: pointer;}
+
+/*터치 기기에서는 커서 강제하지 않기*/
+@media (hover: none) and (pointer: coarse) {
+
+  button,
+  a,
+  [role="button"] {
+    cursor: auto;
+  }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+
+/* === VerifySelectPage 스타일 추가 === */
+/*모바일에서 height:100vh +overflow:hidden 조합은 모바일 스크롤을 막는다네요.*/
+.verify-page-wrapper {
+  position: relative;
+  min-height: 100svh;
+  background-color: #f7f7f7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /*내용이 넘치면 세로 스크롤*/
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+
+  /*상/하단 안전 영역 고려 - 토치 및 툴바*/
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.verify-card {
+  background: white;
+  padding: 3rem 4rem;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  text-align: center;
+  animation: float 4s ease-in-out infinite;
+
+  /*화면 조절*/
+  width: min(92vw, 560px);
+}
+
+.verify-card h2 {
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  font-family: var(--nostalgia-font);
+}
+
+.verify-button {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-family: var(--nostalgia-font);
+}
+
+.verify-button.photo {
+  background-color: #f8d7c2;
+}
+
+.verify-button.handwriting {
+  background-color: #fff3b0;
+}
+
+.verify-button.location {
+  background-color: #d4edda;
+}
+
+.verify-button.voice {
+  background-color: #d6e0f5;
+}
+
+.verify-button:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
 }
