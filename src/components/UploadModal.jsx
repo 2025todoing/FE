@@ -2,32 +2,38 @@ import React, { useState } from "react";
 import styled from "styled-components";
 
 const UploadModal = ({ onClose, onUpload }) => {
-    const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-    const handleFileChange = (e) => {
-        setSelectedFile(e.target.files[0]);
-    };
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0]);
+  };
 
-    const handleUpload = () => {
-        if (selectedFile) {
-            const formData = new FormData();
-            formData.append("file", selectedFile);
-            onUpload(formData); // 상위에서 API 요청
-        }
-    };
+  const handleUpload = () => {
+    if (!selectedFile) {
+      alert("사진 파일을 선택해 주세요!");
+      return;
+    }
 
-    return (
-        <Overlay>
-            <ModalContent>
-                <h3>사진을 업로드해주세요</h3>
-                <input type="file" accept="image/*" onChange={handleFileChange} />
-                <div className="buttons">
-                    <button onClick={handleUpload}>업로드</button>
-                    <button onClick={onClose}>취소</button>
-                </div>
-            </ModalContent>
-        </Overlay>
-    );
+    const formData = new FormData();
+    // 🔥 여기 이름이 백엔드 @RequestParam("image") / MultipartFile image 일 확률이 높음
+    // Swagger에서 파라미터 이름이 뭐로 되어 있는지 보고 같게 맞춰줘야 함.
+    formData.append("image", selectedFile);
+
+    onUpload(formData); // 상위(VerifyPage)에서 바로 fetch 호출
+  };
+
+  return (
+    <Overlay>
+      <ModalContent>
+        <h3>사진을 업로드해주세요</h3>
+        <input type="file" accept="image/*" onChange={handleFileChange} />
+        <div className="buttons">
+          <button onClick={handleUpload}>업로드</button>
+          <button onClick={onClose}>취소</button>
+        </div>
+      </ModalContent>
+    </Overlay>
+  );
 };
 
 export default UploadModal;

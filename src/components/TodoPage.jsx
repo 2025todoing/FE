@@ -932,11 +932,20 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
                             <AiVerificationTag>
                               AI 인증 방법: {todo.verificationMethod}{' '}
                               <span
-                                onClick={() => onNavigate && onNavigate('verify')}
+                                onClick={() =>
+                                  onNavigate(
+                                    'verify',
+                                    {
+                                      todoId: todo.id,
+                                      category: todo.category   // Exercise, Study, Work, Hobby 중 하나
+                                    }
+                                  )
+                                }
                                 style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
                               >
                                 (인증하러 가기)
                               </span>
+
                             </AiVerificationTag>
                           )}
                         </TodoContent>

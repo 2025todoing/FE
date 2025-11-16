@@ -38,7 +38,7 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, todoDetails, setTodoDetails }) {
         <>
           <Route path="/app/todo" element={
             <TodoPage
-              onNavigate={(p) => nav(`/app/${p}`)}
+                onNavigate={(p, state) => nav(`/app/${p}`, { state })}
               onCreateTodo={() => nav('/app/create')}
             />
           } />
@@ -51,7 +51,15 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, todoDetails, setTodoDetails }) {
             />
           } />
           <Route path="/app/chat" element={<ChatPage onBack={() => nav('/app/todo')} todoDetails={todoDetails} />} />
-          <Route path="/app/verify" element={<VerifyPage onNavigate={(p) => nav(`/app/${p}`)} />} />
+            <Route
+              path="/app/verify"
+              element={
+                <VerifyPage
+                  onNavigate={(p, state) => nav(`/app/${p}`, { state })}
+                />
+              }
+            />
+
           <Route path="*" element={<Navigate to="/app/todo" replace />} />
         </>
       )}
