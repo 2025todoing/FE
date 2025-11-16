@@ -5,7 +5,7 @@ const UploadModal = ({ onClose, onUpload }) => {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
+    setSelectedFile(e.target.files[0] || null);
   };
 
   const handleUpload = () => {
@@ -14,12 +14,8 @@ const UploadModal = ({ onClose, onUpload }) => {
       return;
     }
 
-    const formData = new FormData();
-    // 🔥 여기 이름이 백엔드 @RequestParam("image") / MultipartFile image 일 확률이 높음
-    // Swagger에서 파라미터 이름이 뭐로 되어 있는지 보고 같게 맞춰줘야 함.
-    formData.append("image", selectedFile);
-
-    onUpload(formData); // 상위(VerifyPage)에서 바로 fetch 호출
+    // 🔥 FormData 만들지 말고, 파일 그대로 상위로 올려보냄
+    onUpload(selectedFile);
   };
 
   return (
