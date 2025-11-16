@@ -343,12 +343,48 @@ const TodoEditInput = styled.input`
 
 const CheckboxContainer = styled.div` display: flex; flex-direction: column; align-items: center; `;
 const Checkbox = styled.input`
-  appearance: none; width: 24px; height: 24px; border: 2px solid #ddd; border-radius: 5px; cursor: pointer; position: relative; transition: all 0.2s ease;
-  &:checked { background-color: #4AD66D; border-color: #4AD66D; }
-  &:checked:after { content: ''; position: absolute; top: 25%; left: 35%; width: 30%; height: 50%; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
-  &:hover { border-color: #B344E2; }
-  &:disabled { background-color: #f0f0f0; border-color: #ddd; cursor: not-allowed; }
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+
+  /* 체크된 경우 - 항상 초록색 */
+  &:checked {
+    background-color: #4AD66D;
+    border-color: #4AD66D;
+  }
+
+  &:checked:after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    left: 35%;
+    width: 30%;
+    height: 50%;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+
+  &:hover {
+    border-color: #B344E2;
+  }
+
+  /* disabled 인데, 체크 안 된 애들만 회색 처리 */
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &:disabled:not(:checked) {
+    background-color: #f0f0f0;
+    border-color: #ddd;
+  }
 `;
+
 
 const AiVerificationTag = styled.div`
   font-size: 0.8rem; color: #B344E2; display: flex; align-items: center; cursor: pointer; transition: all 0.3s ease;
