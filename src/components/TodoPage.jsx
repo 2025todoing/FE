@@ -973,6 +973,7 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
                                   onNavigate('verify', {
                                     todoId: todo.id,
                                     category: todo.category, // Exercise, Study, Work, Hobby
+                                    content: todo.text // 뒤에 내용도 ai 인증을 위해서 넘겨야 합니다.
                                   })
                                 }
                                 style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
