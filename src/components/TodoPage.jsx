@@ -964,24 +964,28 @@ const TodoPage = ({ onNavigate, onCreateTodo }) => {
                           ) : (
                             <TodoText aiVerification={todo.aiVerification}>{todo.text}</TodoText>
                           )}
-                          {todo.aiVerification && (
+                          {/* 아직 AI 인증 안 된 경우 → 인증하러 가기 버튼 노출 */}
+                          {todo.aiVerification && !todo.completed && (
                             <AiVerificationTag>
                               AI 인증 방법: {todo.verificationMethod}{' '}
                               <span
                                 onClick={() =>
-                                  onNavigate(
-                                    'verify',
-                                    {
-                                      todoId: todo.id,
-                                      category: todo.category   // Exercise, Study, Work, Hobby 중 하나
-                                    }
-                                  )
+                                  onNavigate('verify', {
+                                    todoId: todo.id,
+                                    category: todo.category, // Exercise, Study, Work, Hobby
+                                  })
                                 }
                                 style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
                               >
                                 (인증하러 가기)
                               </span>
+                            </AiVerificationTag>
+                          )}
 
+                          {/* AI 인증까지 끝난 투두 → 완료 문구만 보여줌 */}
+                          {todo.aiVerification && todo.completed && (
+                            <AiVerificationTag style={{ cursor: 'default' }}>
+                              ✅ AI 인증 완료
                             </AiVerificationTag>
                           )}
                         </TodoContent>
