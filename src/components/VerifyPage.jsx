@@ -4,6 +4,8 @@ import { useLocation } from "react-router-dom";
 import BackgroundAnimation from "./BackgroundAnimation";
 import UploadModal from "./UploadModal";
 import { toggleTodo } from "../api/todo";
+import VoiceVerifyModal from "./VoiceVerifyModal";
+
 
 const VerifyPage = ({ onNavigate }) => {
   const location = useLocation();
@@ -14,6 +16,7 @@ const VerifyPage = ({ onNavigate }) => {
   console.log("받은 카테고리:", category, " / todoId:", todoId, " / content:", todoContent);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [uploadMode, setUploadMode] = useState(null); // 'photo' | 'handwriting'
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -342,11 +345,12 @@ ${categoryExplanation}
         </Button>
         <Button
           className="voice"
-          onClick={() => onNavigate("verify-voice")}
+          onClick={() => setShowVoiceModal(true)}
           disabled={isVerifying}
         >
           음성 인증
         </Button>
+
       </Card>
 
       {showUploadModal && (
@@ -355,6 +359,18 @@ ${categoryExplanation}
           onUpload={handleUploadFromModal} // ✅ 모달은 공통, 내부에서 mode에 따라 분기
         />
       )}
+      {showVoiceModal && (
+        <VoiceVerifyModal
+          todoId={todoId}
+          todoContent={todoContent}
+          category={category}
+          onClose={() => setShowVoiceModal(false)}
+          onSuccess={completeTodoAndGoBack}   // /app/todo 로 이동
+        />
+      )}
+
+
+
     </Wrapper>
   );
 };
