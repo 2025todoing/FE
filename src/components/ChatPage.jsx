@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { v4 as uuidv4 } from 'uuid';
 import BackgroundAnimation from './BackgroundAnimation';
-import { sendChatMessage, saveChatPlan } from '../api/chat';
+import { postChatMessage, getChatResult, saveChatPlan } from '../api/chat';
 import todoongiImg from '../assets/images/todoi.png';
+
 
 // Animations
 const fadeIn = keyframes`
@@ -189,25 +191,24 @@ const MessagesContainer = styled.div`
 const MessageBubble = styled.div`
   max-width: 80%;
   padding: 1rem 1.5rem;
-  border-radius: ${props => props.isUser ? '18px 18px 0 18px' : '18px 18px 18px 0'};
-  background: ${props => props.isUser ? 'linear-gradient(45deg, #4F87FF, #B344E2)' : 'rgba(255, 255, 255, 0.8)'};
-  color: ${props => props.isUser ? 'white' : '#333'};
-  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  border-radius: ${props => props.$isUser ? '18px 18px 0 18px' : '18px 18px 18px 0'};
+  background: ${props => props.$isUser ? 'linear-gradient(45deg, #4F87FF, #B344E2)' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${props => props.$isUser ? 'white' : '#333'};
+  align-self: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   position: relative;
-  
+
   &:after {
     content: '';
     position: absolute;
     bottom: 0;
-    ${props => props.isUser ? 'right' : 'left'}: 0;
+    ${props => props.$isUser ? 'right' : 'left'}: 0;
     width: 12px;
     height: 12px;
-    background: ${props => props.isUser ? 'linear-gradient(45deg, #4F87FF, #B344E2)' : 'rgba(255, 255, 255, 0.8)'};
+    background: ${props => props.$isUser ? 'linear-gradient(45deg, #4F87FF, #B344E2)' : 'rgba(255, 255, 255, 0.8)'};
     z-index: -1;
   }
 `;
-
 const InputContainer = styled.div`
   display: flex;
   padding: 1.5rem;
@@ -540,7 +541,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
     {
-      id: 1,
+      id: uuidv4(),
       isUser: false,
       text: `안녕하세요! 저는 투둥이에요. 할 일을 계획하고 정리하는 것을 도와드릴게요. 어떤 것을 도와드릴까요?`
     }
@@ -550,156 +551,159 @@ const ChatPage = ({ onBack, todoDetails }) => {
   const [planData, setPlanData] = useState(null);
 
   const messagesEndRef = useRef(null);
-
-
-  // [추가] 1초 디바운스용 상태와 타이머
-  const [pendingMessages, setPendingMessages] = useState([]);
-  const debounceTimer = useRef(null);
+  const pollingIntervalRef = useRef(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [lastResultId, setLastResultId] = useState(null); // 마지막으로 받은 결과 ID
 
   // Scroll to bottom of messages when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  useEffect(() => {
+    const startPolling = async () => {
+      console.log("📡 폴링 시작");
+      const accessToken = localStorage.getItem('accessToken');
+
+      // Mock 모드가 아닐 때만 토큰 체크
+      const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+      if (!USE_MOCK && !accessToken) return;
+
+      try {
+        const response = await getChatResult(accessToken);
   
-    const newMessage = {
-      id: messages.length + pendingMessages.length + 1,
-      isUser: true,
-      text: message
+        if (response.isSuccess && response.result) {
+          const { id, type, content } = response.result;
+          const resultText = prompt;
+  
+          // 새로운 응답인지 확인 (중복 방지)
+          if (id && id !== lastResultId) {
+            setLastResultId(id);
+  
+            // JSON 파싱 시도
+            if (id && id !== lastResultId) {
+              setLastResultId(id);
+            
+              // PLAN
+              if (type === "plan") {
+
+                //  폴링 중단
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                     pollingIntervalRef.current = null;
+                }
+                const parsed = JSON.parse(content); // content 자체가 JSON 문자열
+            
+                const loadingMessage = {
+                  id: uuidv4(),
+                  isUser: false,
+                  isLoading: true
+                };
+                setMessages(prev => [...prev, loadingMessage]);
+            
+                setTimeout(() => {
+                  setMessages(prev => prev.filter(msg => !msg.isLoading));
+                  setShowFireworks(true);
+            
+                  setPlanData({
+                    mainQuest: parsed.mainQuest,
+                    subQuests: parsed.subQuests
+                  });
+            
+                  setTimeout(() => {
+                    setShowFireworks(false);
+                    setIsPlanPopupVisible(true);
+                  }, 1000);
+                }, 2000);
+            
+                return;
+              }
+            
+              // 일반 response
+              if (type === "response") {
+                const aiMessage = {
+                  id: uuidv4(),
+                  isUser: false,
+                  text: content
+                };
+                setMessages(prev => [...prev, aiMessage]);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
     };
-    console.log('[SEND]', newMessage.text, '타이머 초기화 시각:', Date.now());
-    // 화면에는 바로 추가
-    setMessages(prev => [...prev, newMessage]);
-    // 큐에 쌓아둠 (API 아직 안 보냄)
-    setPendingMessages(prev => [...prev, newMessage]);
-    setMessage('');
   
-    // 디바운스: 1초 동안 추가 입력 없으면 한꺼번에 보내기
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-      console.log('[TIMER] 기존 타이머 클리어');
-    }
-    debounceTimer.current = setTimeout(() => {
-      console.log('[TIMER] 타이머 만료 → flush 실행', Date.now());
-      flushPendingMessages();
-    }, 1000);
-  };
+    // 1.5초마다 폴링
+    pollingIntervalRef.current = setInterval(startPolling, 700);
+  
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [lastResultId]);
+  
 
-  const flushPendingMessages = async () => {
-    console.log('[FLUSH] 보낼 메시지 없음');
-    if (pendingMessages.length === 0) return;
-  
-    // 여러 메시지를 줄바꿈으로 합쳐서 한 번에 보냄
-    const batchedText = pendingMessages.map(m => m.text).join('\n');
-    console.log('[FLUSH] 전송할 메시지 묶음:', batchedText);
-    setPendingMessages([]); // 큐 비우기
-  
-    await handleApiResponse(batchedText);
-  };
 
-  // Handle API response from chat/message endpoint
-  const handleApiResponse = async (userMessage) => {
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
     const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
+    const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+    // Mock 모드가 아닐 때만 토큰 체크
+    if (!USE_MOCK && !accessToken) {
       console.error('❗ No access token found');
       return;
     }
 
+    const userMessage = message.trim();
+    const newMessage = {
+      id: uuidv4(),
+      isUser: true,
+      text: userMessage
+    };
+
+    // 화면에 바로 표시
+    setMessages(prev => [...prev, newMessage]);
+    setMessage('');
+
     try {
-      
-      // 1. 전체 메시지를 role 기반으로 포맷팅
-      const fullContext = messages.filter(msg => !msg.isLoading)
-      .map(msg => ({ role: msg.isUser ? 'user' : 'assistant', content: msg.text}));
+      // 서버로 즉시 전송 (디바운스 없음)
+      const response = await postChatMessage(userMessage, accessToken);
 
-      // 2. 새 유저 메시지도 추가
-      fullContext.push({ role: 'user', content: userMessage});
-
-      // 3. GPT에게 보내기
-      const response = await sendChatMessage(fullContext, accessToken);
-
-
-      if (response.isSuccess) {
-        const promptResult = response.result.prompt;
-        
-        // Try to parse the prompt as JSON to check if it's a plan
-        let parsedPrompt;
-        try {
-          parsedPrompt = JSON.parse(promptResult);
-        } catch (e) {
-          // Not JSON, treat as normal string message
-          parsedPrompt = null;
-        }
-
-        if (parsedPrompt && parsedPrompt.type === 'plan') {
-          // Scenario 2: Plan response - show loading ONLY for plan generation
-          const loadingMessage = {
-            id: messages.length + 2,
-            isUser: false,
-            isLoading: true
-          };
-          setMessages(prev => [...prev, loadingMessage]);
-
-          // Simulate plan generation time (2 seconds)
-          setTimeout(() => {
-            // Remove loading message
-            setMessages(prev => prev.filter(msg => !msg.isLoading));
-            
-            // Show fireworks and setup plan data
-            setShowFireworks(true);
-            
-            const planData = {
-              mainQuest: parsedPrompt.mainQuest,
-              subQuests: parsedPrompt.subQuests
-            };
-            
-            setPlanData(planData);
-
-            // Show fireworks for 1 second, then show popup
-            setTimeout(() => {
-              setShowFireworks(false);
-              setIsPlanPopupVisible(true);
-            }, 1000);
-          }, 2000);
-        } else {
-          // Scenario 1: Normal message response - no loading, immediate response
-          const todooungiResponse = {
-            id: messages.length + 2,
-            isUser: false,
-            text: promptResult // Use the raw string response
-          };
-
-          setMessages(prev => [...prev, todooungiResponse]);
-        }
-      } else {
-        // Show error message
+      if (!response.isSuccess) {
+        // 에러 메시지 표시
         const errorMessage = {
-          id: messages.length + 2,
+          id: uuidv4(),
           isUser: false,
-          text: "죄송해요, 응답을 가져오는 중에 문제가 발생했어요. 다시 시도해주세요."
+          text: "메시지 전송 중 문제가 발생했어요. 다시 시도해주세요."
         };
-        
         setMessages(prev => [...prev, errorMessage]);
-        console.error('API Error:', response.message);
+        console.error('Message send error:', response.message);
       }
+      // 성공 시 폴링이 자동으로 응답을 가져옴
     } catch (error) {
-      // Show error message
       const errorMessage = {
-        id: messages.length + 2,
+        id: uuidv4(),
         isUser: false,
         text: "서버 연결에 문제가 있어요. 잠시 후 다시 시도해주세요."
       };
-      
       setMessages(prev => [...prev, errorMessage]);
-      console.error('Network Error:', error);
+      console.error('Network error:', error);
     }
   };
 
   // Handle plan acceptance
   const handleAcceptPlan = async () => {
     const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
+    const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+    // Mock 모드가 아닐 때만 토큰 체크
+    if (!USE_MOCK && !accessToken) {
       console.error('❗ No access token found');
       return;
     }
@@ -715,7 +719,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
 
       // Show saving message
       const savingMessage = {
-        id: messages.length + 1,
+        id: uuidv4(),
         isUser: false,
         text: "계획을 저장하고 있어요..."
       };
@@ -736,7 +740,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
       if (response.isSuccess) {
         // Show success message
         const successMessage = {
-          id: messages.length + 1,
+          id: uuidv4(),
           isUser: false,
           text: "좋아요! 계획이 저장되었어요. 이제 시작해볼까요? 화이팅이에요! 💪"
         };
@@ -744,7 +748,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
       } else {
         // Show error message
         const errorMessage = {
-          id: messages.length + 1,
+          id: uuidv4(),
           isUser: false,
           text: "계획 저장 중 문제가 발생했어요. 다시 시도해주세요."
         };
@@ -757,10 +761,10 @@ const ChatPage = ({ onBack, todoDetails }) => {
     } catch (error) {
       // Remove saving message
       setMessages(prev => prev.filter(msg => msg.text !== "계획을 저장하고 있어요..."));
-      
+
       // Show error message
       const errorMessage = {
-        id: messages.length + 1,
+        id: uuidv4(),
         isUser: false,
         text: "서버 연결에 문제가 있어 계획을 저장하지 못했어요. 다시 시도해주세요."
       };
@@ -777,7 +781,7 @@ const ChatPage = ({ onBack, todoDetails }) => {
     setIsPlanPopupVisible(false);
 
     const rejectMessage = {
-      id: messages.length + 1,
+      id: uuidv4(),
       isUser: false,
       text: "알겠어요! 다른 계획을 다시 생각해볼게요. 어떤 부분을 바꾸고 싶으신가요?"
     };
@@ -839,12 +843,14 @@ const ChatPage = ({ onBack, todoDetails }) => {
 
           <ChatContainer>
             <MessagesContainer>
-              <WelcomeMessage>
-                <WelcomeTitle>투둥이와 대화하기</WelcomeTitle>
+            {messages.length === 1 && (
+                <WelcomeMessage>
+                  <WelcomeTitle>투둥이와 대화하기</WelcomeTitle>
                 <WelcomeText>
-                  할 일을 계획하고 달성하는 데 도움을 드릴게요. 함께 효과적으로 할 일을 관리해보아요!
+                할 일을 계획하고 달성하는 데 도움을 드릴게요. 함께 효과적으로 할 일을 관리해보아요!
                 </WelcomeText>
               </WelcomeMessage>
+            )}
 
               {messages.map(msg => {
                 if (msg.isLoading) {
@@ -879,14 +885,14 @@ const ChatPage = ({ onBack, todoDetails }) => {
                           flexShrink: 0
                         }}
                       />
-                      <MessageBubble isUser={false}>{msg.text}</MessageBubble>
+                      <MessageBubble $isUser={false}>{msg.text}</MessageBubble>
                     </div>
                   );
                 }
 
                 // 유저 메시지는 기존대로
                 return (
-                  <MessageBubble key={msg.id} isUser={msg.isUser}>
+                  <MessageBubble key={msg.id} $isUser={msg.isUser}>
                     {msg.text}
                   </MessageBubble>
                 );
