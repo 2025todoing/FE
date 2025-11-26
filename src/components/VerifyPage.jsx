@@ -338,11 +338,18 @@ ${categoryExplanation}
 
         <Button
           className="location"
-          onClick={() => onNavigate("verify-location")}
+          onClick={() =>
+            onNavigate("verify-location", {
+              todoId,
+              category,
+              content: todoContent, // ✅ LocationVerifyPage에서 useLocation().state.content 로 받게
+            })
+          }
           disabled={isVerifying}
         >
-          위치 인증 - 오픈 예정
+          위치 인증
         </Button>
+
         <Button
           className="voice"
           onClick={() => setShowVoiceModal(true)}

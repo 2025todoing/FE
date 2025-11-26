@@ -8,6 +8,7 @@ import CreateTodoPage from './components/CreateTodoPage';
 import ChatPage from './components/ChatPage';
 import VerifyPage from './components/VerifyPage';
 import AuthPage from './components/AuthPage';
+import LocationVerifyPage from './components/LocationVerifyPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -55,6 +56,15 @@ function AppRoutes({ isLoggedIn, setIsLoggedIn, todoDetails, setTodoDetails }) {
               path="/app/verify"
               element={
                 <VerifyPage
+                  onNavigate={(p, state) => nav(`/app/${p}`, { state })}
+                />
+              }
+            />
+          {/*위치 인증 페이지 추가*/}
+            <Route
+              path="/app/verify-location"
+              element={
+                <LocationVerifyPage
                   onNavigate={(p, state) => nav(`/app/${p}`, { state })}
                 />
               }
