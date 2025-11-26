@@ -92,6 +92,36 @@ ${placesSummary}
     return text; // "MATCH" 또는 "MISMATCH" 기대
 }
 
+async function fetchNearbyPlaces(lat, lng, radius = 500) {
+    if (!KAKAO_REST_API_KEY) {
+        throw new Error("Kakao REST API 키가 없습니다 (VITE_KAKAO_REST_API_KEY).");
+    }
+
+    const url = new URL("https://dapi.kakao.com/v2/local/search/keyword.json");
+    url.searchParams.set("query", " ");          // 공백 검색 → 모든 장소 (카테고리 상관X)
+    url.searchParams.set("x", String(lng));      // 경도
+    url.searchParams.set("y", String(lat));      // 위도
+    url.searchParams.set("radius", String(radius)); // m
+    url.searchParams.set("sort", "distance");
+
+    const res = await fetch(url.toString(), {
+        headers: {
+            Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
+        },
+    });
+
+    if (!res.ok) {
+        console.error("[Kakao Local] 에러 상태코드:", res.status);
+        throw new Error("Kakao Local 호출 실패: " + res.status);
+    }
+
+    const data = await res.json();
+    console.log("📍 [Kakao 주변 장소] 응답:", data);
+
+    // 최대 5개 정도만 사용
+    return (data.documents || []).slice(0, 5);
+}
+
 
 /**
  * 카테고리별로 어떤 키워드로 주변을 검색할지 정의
@@ -237,35 +267,44 @@ const LocationVerifyPage = ({ onNavigate }) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 console.log("📍 현재 좌표:", lat, lng);
-                setDebugMsg(`현재 좌표: (${lat.toFixed(5)}, ${lng.toFixed(5)}) — 주변 장소 검사 중...`);
+                setDebugMsg(`현재 좌표: (${lat.toFixed(5)}, ${lng.toFixed(5)}) — 주변 건물 검색 중...`);
 
                 try {
-                    const { isMatch, nearbyNames } = await verifyLocationWithKakao(
+                    // 1) Kakao로 주변 건물 조회
+                    const places = await fetchNearbyPlaces(lat, lng, 500);
+                    const names = places.map((p) => p.place_name).filter(Boolean);
+                    setNearbyNames(names);
+
+                    // 2) Gemini에게 "이 위치가 맞는지" 질문
+                    const aiText = await judgeLocationWithGemini({
+                        todoContent,
+                        category,
                         lat,
                         lng,
-                        normalizedCategory,
-                        todoContent
-                    );
+                        places,
+                    });
 
-                    setNearbyNames(nearbyNames);
+                    console.log("📌 [위치 인증] Gemini 결과 텍스트:", aiText);
 
-                    if (isMatch) {
-                        setDebugMsg("✅ 주변에서 투두에 맞는 장소가 확인되었어요!");
+                    if (aiText === "MATCH") {
+                        setDebugMsg("✅ Gemini가 이 위치를 투두에 적절한 장소라고 판단했어요!");
                         await completeTodoAndGoBack();
-                    } else {
+                    } else if (aiText === "MISMATCH") {
+                        setDebugMsg("❌ 이 위치는 투두와 관련 없는 장소로 판단됐어요.");
                         let msg =
-                            "❌ 현재 위치가 이 투두를 수행하기에 적절한 장소로 보이지 않아요.\n" +
-                            "정말 해당 활동을 할 수 있는 장소가 맞는지 한 번 더 확인해 주세요.";
+                            "❌ 현재 위치가 이 투두를 수행하기에 적절하지 않은 곳이라고 판단됐어요.";
 
-                        if (nearbyNames.length > 0) {
-                            msg += `\n\n📌 현재 근처 예시 장소:\n- ${nearbyNames.join("\n- ")}`;
+                        if (names.length > 0) {
+                            msg += `\n\n📌 현재 근처 예시 장소:\n- ${names.join("\n- ")}`;
                         }
 
                         alert(msg);
-                        setDebugMsg("❌ 주변에서 적절한 장소를 찾지 못했어요.");
+                    } else {
+                        setDebugMsg(`⚠️ AI 응답을 해석할 수 없어요. (응답: ${aiText})`);
+                        alert(`AI 응답을 해석할 수 없어요. (응답: ${aiText})`);
                     }
                 } catch (err) {
-                    console.error("[위치 인증] Kakao 검증 에러:", err);
+                    console.error("[위치 인증] 에러:", err);
                     alert("위치 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
                     setDebugMsg("❌ 위치 분석 중 오류가 발생했습니다.");
                 } finally {
